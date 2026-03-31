@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/functions.php';
+require_once __DIR__ . '/../src/media.php';
 
 $all = get_all_projects();
 $selected_slugs = ['beyond-pitaya', 'bodily-nature', 'tidal-vile', 'rice-journey', 'gestural-resonance'];
@@ -9,9 +10,16 @@ render_header('Tong Wu');
 ?>
 
 <!-- ── Hero ── -->
+<?php $hero_images = list_home_media(); ?>
 <section class="home-hero">
   <div class="home-hero-image">
-    <!-- replace with: <img src="/media/home/hero.jpg" alt=""> -->
+    <?php if (!empty($hero_images)): ?>
+      <?php foreach ($hero_images as $i => $img): ?>
+      <img src="<?= htmlspecialchars($img['url']) ?>"
+           alt=""
+           class="hero-slide<?= $i === 0 ? ' hero-slide--active' : '' ?>">
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
   <div class="home-hero-text">
     <h1 class="home-name">Tong Wu</h1>
@@ -39,7 +47,7 @@ render_header('Tong Wu');
     <?php $i = 0; foreach ($selected as $p):
         $img = '/media/projects/' . $p['slug'] . '.jpg';
         $img_exists = file_exists(__DIR__ . '/media/projects/' . $p['slug'] . '.jpg');
-        $large = ($i === 0 || $i === 3); // items 1 and 4 are large
+        $large = $i === 0 || $i === 3; // items 1 and 4 are large
     ?>
     <a href="/p/<?= htmlspecialchars($p['slug']) ?>"
        class="home-work-card<?= $large ? ' home-work-card--large' : '' ?>">
@@ -56,5 +64,18 @@ render_header('Tong Wu');
   </div>
 
 </section>
+
+<script>
+(function () {
+  var slides = document.querySelectorAll('.hero-slide');
+  if (slides.length < 2) return;
+  var current = 0;
+  setInterval(function () {
+    slides[current].classList.remove('hero-slide--active');
+    current = (current + 1) % slides.length;
+    slides[current].classList.add('hero-slide--active');
+  }, 5000);
+}());
+</script>
 
 <?php render_footer(); ?>

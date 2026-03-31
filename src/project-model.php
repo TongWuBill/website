@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/media.php';
 
 function get_all_projects_admin(): array {
     $db = get_db();
@@ -50,11 +51,16 @@ function create_project(array $data): int {
         ':updated_at'       => $now,
     ]);
 
-    return (int) $db->lastInsertId();
+    $id = (int) $db->lastInsertId();
+    create_project_folder($data['slug']);
+    return $id;
 }
 
 function update_project(int $id, array $data): void {
     $db = get_db();
+
+    // Fetch old slug before overwriting it
+    $before = get_project_by_id($id);
 
     $stmt = $db->prepare("
         UPDATE projects SET
@@ -91,5 +97,10 @@ function update_project(int $id, array $data): void {
         ':updated_at'       => date('Y-m-d H:i:s'),
         ':id'               => $id,
     ]);
+
+    // Rename media folder if slug changed
+    if ($before && $before['slug'] !== $data['slug']) {
+        rename_project_folder($before['slug'], $data['slug']);
+    }
 }
 

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../src/auth.php';
 require_once __DIR__ . '/../../src/project-model.php';
+require_once __DIR__ . '/../../src/media.php';
 
 require_login();
 
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $db = get_db();
             $db->prepare("DELETE FROM projects WHERE id = ?")->execute([$id]);
+            delete_project_folder($project['slug']);
             header('Location: /admin/dashboard.php');
             exit;
         } catch (Exception $e) {
