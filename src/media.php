@@ -115,9 +115,3 @@ function _list_media_files(string $path): array {
     return $files;
 }
 
-// ── Bootstrap: ensure base folders exist ────────────────────────────────────
-
-foreach (['home', 'projects', 'experiments', 'about'] as $_dir) {
-    $p = UPLOADS_ROOT . '/' . $_dir;
-    if (!is_dir($p)) mkdir($p, 0775, true);
-}
