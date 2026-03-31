@@ -4,7 +4,7 @@ require_once __DIR__ . '/db.php';
 
 function get_all_projects() {
     $db = get_db();
-    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 ORDER BY id ASC");
+    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 ORDER BY id DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
