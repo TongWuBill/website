@@ -21,7 +21,7 @@ if ($uri === '') {
 
 switch ($uri) {
     case '/':
-        require __DIR__ . '/index.php';
+        require __DIR__ . '/home.php';
         break;
 
     case '/work':
