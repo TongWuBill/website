@@ -4,7 +4,7 @@ require_once __DIR__ . '/db.php';
 
 function get_all_projects_admin(): array {
     $db = get_db();
-    $stmt = $db->query("SELECT * FROM projects ORDER BY id DESC");
+    $stmt = $db->query("SELECT * FROM projects ORDER BY id ASC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
