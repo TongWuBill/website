@@ -39,7 +39,7 @@ $projects = get_all_projects_admin();
         <h1>Projects</h1>
         <div class="header-actions">
             <a href="/admin/project-create.php" class="btn btn-primary">+ New Project</a>
-            <a href="/admin/migrate.php" class="btn">Migrate DB</a>
+            <a href="/admin/debug-db.php" class="btn">System</a>
             <a href="/admin/logout.php" class="btn btn-danger">Logout</a>
         </div>
     </div>
