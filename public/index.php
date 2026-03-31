@@ -22,7 +22,7 @@ render_header('Tong Wu');
 <!-- ── Ideology ── -->
 <section class="home-ideology">
   <p class="home-ideology-text">
-    I make work that lives between body and system —<br>
+    hahah. I make work that lives between body and system —<br>
     where sensation becomes data, and data becomes sensation.
   </p>
 </section>
