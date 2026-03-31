@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../src/project-model.php';
 
 require_login();
 
-define('ADMIN_PASSWORD', 'vv856xhfWT');
+const ADMIN_PASSWORD = 'vv856xhfWT';
 
 $id      = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $project = $id ? get_project_by_id($id) : false;
@@ -23,10 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($password !== ADMIN_PASSWORD) {
         $error = 'Incorrect password. Delete cancelled.';
     } else {
-        $db = get_db();
-        $db->prepare("DELETE FROM projects WHERE id = ?")->execute([$id]);
-        header('Location: /admin/dashboard.php');
-        exit;
+        try {
+            $db = get_db();
+            $db->prepare("DELETE FROM projects WHERE id = ?")->execute([$id]);
+            header('Location: /admin/dashboard.php');
+            exit;
+        } catch (Exception $e) {
+            $error = 'Delete failed: ' . $e->getMessage();
+        }
     }
 }
 ?>

@@ -4,8 +4,12 @@ require_once __DIR__ . '/../../src/db.php';
 
 require_login();
 
-$path   = get_db_path();
-$exists = file_exists($path);
+$path      = get_db_path();
+$exists    = file_exists($path);
+$readable  = $exists && is_readable($path);
+$writable  = $exists && is_writable($path);
+$dir       = dirname($path);
+$dir_write = is_writable($dir);
 
 // Fetch columns if the file exists
 $columns = [];
@@ -47,11 +51,17 @@ if ($exists) {
 <div class="path"><?= htmlspecialchars($path) ?></div>
 
 <h2>File exists</h2>
-<?php if ($exists): ?>
-    <span class="ok">YES</span>
-<?php else: ?>
-    <span class="err">NO — file not found at the path above</span>
-<?php endif; ?>
+<?= $exists   ? '<span class="ok">YES</span>' : '<span class="err">NO — file not found</span>' ?>
+
+<h2>File readable</h2>
+<?= $readable  ? '<span class="ok">YES</span>' : '<span class="err">NO — web server cannot read the file</span>' ?>
+
+<h2>File writable</h2>
+<?= $writable  ? '<span class="ok">YES</span>' : '<span class="err">NO — web server cannot write to the file (INSERT/UPDATE/DELETE will fail)</span>' ?>
+
+<h2>Directory writable</h2>
+<div class="path"><?= htmlspecialchars($dir) ?></div>
+<?= $dir_write ? '<span class="ok">YES</span>' : '<span class="err">NO — SQLite needs write access to the directory too (for journal files)</span>' ?>
 
 <?php if ($error): ?>
     <h2>Connection error</h2>
