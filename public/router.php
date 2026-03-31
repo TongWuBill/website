@@ -40,6 +40,10 @@ switch ($uri) {
         require __DIR__ . '/contact.php';
         break;
 
+    case '/admin':
+        header('Location: /admin/login.php');
+        exit;
+
     default:
         if (preg_match('#^/p/(.+)$#', $uri, $matches)) {
             $_GET['slug'] = $matches[1];

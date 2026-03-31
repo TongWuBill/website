@@ -732,6 +732,28 @@ nav {
   padding: 72px 40px 100px;
 }
 
+.project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 3rem;
+  margin-bottom: 56px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.project-meta-item dt {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.project-meta-item dd {
+  font-size: 14px;
+  color: #c0c0c0;
+}
+
 .project-section {
   margin-bottom: 64px;
   padding-bottom: 64px;
