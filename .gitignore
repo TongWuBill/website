@@ -3,9 +3,6 @@ database/portfolio.sqlite
 database/portfolio.sqlite-shm
 database/portfolio.sqlite-wal
 
-# Uploaded media — persistent on server
-public/uploads/
-
 # Local dev / system files
 .DS_Store
 Thumbs.db
