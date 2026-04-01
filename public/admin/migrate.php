@@ -13,6 +13,7 @@ $required = [
     'created_at'   => 'TEXT',
     'updated_at'   => 'TEXT',
     'edit_count'   => 'INTEGER DEFAULT 0',
+    'sort_order'   => 'INTEGER DEFAULT 0',
 ];
 
 $results = [];
@@ -35,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $results[] = ['status' => 'added', 'column' => $column, 'def' => $definition];
         }
     }
+
+    // Backfill sort_order = id for any rows where it is 0 or NULL
+    $db->exec("UPDATE projects SET sort_order = id WHERE sort_order = 0 OR sort_order IS NULL");
+    $results[] = ['status' => 'added', 'column' => 'backfill', 'def' => 'sort_order = id for existing rows'];
 }
 
 // Always read current columns for display

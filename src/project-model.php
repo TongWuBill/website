@@ -5,7 +5,7 @@ require_once __DIR__ . '/media.php';
 
 function get_all_projects_admin(): array {
     $db = get_db();
-    $stmt = $db->query("SELECT * FROM projects ORDER BY id ASC");
+    $stmt = $db->query("SELECT * FROM projects ORDER BY sort_order DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -20,17 +20,19 @@ function create_project(array $data): int {
     $db  = get_db();
     $now = date('Y-m-d H:i:s');
 
+    $next_sort = (int) $db->query("SELECT COALESCE(MAX(sort_order), 0) FROM projects")->fetchColumn() + 1;
+
     $stmt = $db->prepare("
         INSERT INTO projects (
             title, slug, year, category,
             immersion, context, system_text, interaction_text,
             material, reflection, video_url,
-            is_published, created_at, updated_at
+            is_published, created_at, updated_at, sort_order
         ) VALUES (
             :title, :slug, :year, :category,
             :immersion, :context, :system_text, :interaction_text,
             :material, :reflection, :video_url,
-            :is_published, :created_at, :updated_at
+            :is_published, :created_at, :updated_at, :sort_order
         )
     ");
 
@@ -49,6 +51,7 @@ function create_project(array $data): int {
         ':is_published'     => $data['is_published']     ?? 1,
         ':created_at'       => $now,
         ':updated_at'       => $now,
+        ':sort_order'       => $next_sort,
     ]);
 
     $id = (int) $db->lastInsertId();

@@ -17,7 +17,7 @@ $projects = get_all_projects_admin();
         body { font-family: sans-serif; background: #f4f4f4; color: #222; padding: 2rem; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
         h1 { font-size: 1.3rem; }
-        .header-actions { display: flex; gap: 0.75rem; }
+        .header-actions { display: flex; gap: 0.75rem; align-items: center; }
         a.btn { padding: 0.4rem 0.9rem; font-size: 0.85rem; text-decoration: none; border: 1px solid #222; color: #222; background: #fff; }
         a.btn:hover { background: #222; color: #fff; }
         a.btn-primary { background: #222; color: #fff; }
@@ -32,12 +32,20 @@ $projects = get_all_projects_admin();
         .badge-yes { background: #d4edda; color: #155724; }
         .badge-no  { background: #f8d7da; color: #721c24; }
         .actions { display: flex; gap: 0.5rem; }
+        /* drag-and-drop */
+        tbody tr { cursor: grab; user-select: none; }
+        tbody tr:active { cursor: grabbing; }
+        tbody tr.dragging { opacity: 0.35; background: #f9f9f9; }
+        tbody tr.drag-over td:first-child { border-left: 3px solid #222; }
+        .drag-hint { font-size: 0.75rem; color: #aaa; margin-bottom: 0.75rem; }
+        #reorder-status { font-size: 0.8rem; color: #888; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Projects</h1>
         <div class="header-actions">
+            <span id="reorder-status"></span>
             <a href="/admin/project-create.php" class="btn btn-primary">+ New Project</a>
             <a href="/admin/debug-db.php" class="btn">System</a>
             <a href="/admin/logout.php" class="btn btn-danger">Logout</a>
@@ -47,6 +55,7 @@ $projects = get_all_projects_admin();
     <?php if (empty($projects)): ?>
         <p>No projects found.</p>
     <?php else: ?>
+        <p class="drag-hint">Drag rows to reorder — changes save automatically.</p>
         <table>
             <thead>
                 <tr>
@@ -62,9 +71,9 @@ $projects = get_all_projects_admin();
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($projects as $i => $p): ?>
-                <tr>
-                    <td style="color:#888"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></td>
+                <?php foreach ($projects as $p): ?>
+                <tr draggable="true" data-id="<?= (int)$p['id'] ?>">
+                    <td style="color:#888"><?= str_pad((int)($p['sort_order'] ?? 0), 2, '0', STR_PAD_LEFT) ?></td>
                     <td><?= htmlspecialchars($p['title']) ?></td>
                     <td><?= htmlspecialchars($p['slug']) ?></td>
                     <td><?= htmlspecialchars($p['year'] ?? '—') ?></td>
@@ -89,5 +98,71 @@ $projects = get_all_projects_admin();
             </tbody>
         </table>
     <?php endif; ?>
+
+<script>
+(function () {
+    const tbody  = document.querySelector('tbody');
+    const status = document.getElementById('reorder-status');
+    if (!tbody) return;
+
+    let dragged = null;
+
+    tbody.addEventListener('dragstart', e => {
+        dragged = e.target.closest('tr');
+        setTimeout(() => dragged.classList.add('dragging'), 0);
+    });
+
+    tbody.addEventListener('dragend', () => {
+        if (dragged) dragged.classList.remove('dragging');
+        document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+        dragged = null;
+        saveOrder();
+    });
+
+    tbody.addEventListener('dragover', e => {
+        e.preventDefault();
+        const target = e.target.closest('tr');
+        if (!target || target === dragged) return;
+        document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+        target.classList.add('drag-over');
+        const rows = [...tbody.querySelectorAll('tr')];
+        if (rows.indexOf(dragged) < rows.indexOf(target)) {
+            target.after(dragged);
+        } else {
+            target.before(dragged);
+        }
+    });
+
+    function saveOrder() {
+        const rows  = [...tbody.querySelectorAll('tr')];
+        const ids   = rows.map(r => parseInt(r.dataset.id, 10));
+        const total = ids.length;
+
+        status.textContent = 'Saving…';
+
+        fetch('/admin/reorder.php', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ ids })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                // Update displayed # values to match new sort_order
+                rows.forEach((row, i) => {
+                    row.querySelector('td').textContent =
+                        String(total - i).padStart(2, '0');
+                });
+                status.textContent = 'Saved ✓';
+                setTimeout(() => { status.textContent = ''; }, 2000);
+            } else {
+                status.textContent = 'Error saving';
+            }
+        })
+        .catch(() => { status.textContent = 'Error saving'; });
+    }
+}());
+</script>
+
 </body>
 </html>
