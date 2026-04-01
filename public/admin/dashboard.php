@@ -141,9 +141,10 @@ $projects = get_all_projects_admin();
         status.textContent = 'Saving…';
 
         fetch('/admin/reorder.php', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ ids })
+            method:      'POST',
+            credentials: 'same-origin',
+            headers:     { 'Content-Type': 'application/json' },
+            body:        JSON.stringify({ ids })
         })
         .then(r => r.json())
         .then(data => {
@@ -156,10 +157,14 @@ $projects = get_all_projects_admin();
                 status.textContent = 'Saved ✓';
                 setTimeout(() => { status.textContent = ''; }, 2000);
             } else {
-                status.textContent = 'Error saving';
+                status.textContent = 'Error: ' + (data.error || 'unknown');
+                console.error('reorder failed:', data);
             }
         })
-        .catch(() => { status.textContent = 'Error saving'; });
+        .catch(err => {
+            status.textContent = 'Error saving (see console)';
+            console.error('reorder fetch failed:', err);
+        });
     }
 }());
 </script>
