@@ -9,10 +9,20 @@ $img_exts = ['jpg','jpeg','png','webp','gif'];
 $thumbs   = [];
 foreach ($projects as $p) {
     $files = list_project_media($p['slug']);
+    // Prefer explicit thumbnail file
     foreach ($files as $f) {
-        if (in_array($f['ext'], $img_exts)) {
+        if (preg_match('/^thumb[\-_.]/i', $f['name']) && in_array($f['ext'], $img_exts)) {
             $thumbs[$p['slug']] = $f['url'];
             break;
+        }
+    }
+    // Fallback: first image in folder
+    if (!isset($thumbs[$p['slug']])) {
+        foreach ($files as $f) {
+            if (in_array($f['ext'], $img_exts)) {
+                $thumbs[$p['slug']] = $f['url'];
+                break;
+            }
         }
     }
 }

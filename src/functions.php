@@ -133,6 +133,9 @@ function render_header($title = '') {
 
 function render_footer() {
     ?>
+        <footer class="site-footer">
+            <p class="site-footer-copy">&copy; 2026 Tong Wu. All rights reserved.</p>
+        </footer>
         </div><!-- /.page-content -->
     </body>
     </html>

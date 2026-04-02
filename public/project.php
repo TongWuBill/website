@@ -12,15 +12,12 @@ if (!$project) {
 }
 
 // ── Media bucketing ───────────────────────────────────────────
-// All files for this project
-$all_media = list_project_media($project['slug']);
-
+$all_media  = list_project_media($project['slug']);
 $media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov'];
 $img_exts   = ['jpg','jpeg','png','webp','gif'];
 $vid_exts   = ['mp4','webm','mov'];
 
 // ── Load content sections ─────────────────────────────────────
-// Prefer new sections JSON; fall back to legacy fixed fields.
 if (!empty($project['sections'])) {
     $decoded_sections = json_decode($project['sections'], true);
     $content_sections = is_array($decoded_sections) ? $decoded_sections : [];
@@ -28,7 +25,6 @@ if (!empty($project['sections'])) {
     $content_sections = [];
 }
 if (empty($content_sections)) {
-    // Legacy fallback
     foreach ([
         'Concept'      => $project['immersion']        ?? '',
         'Context'      => $project['context']          ?? '',
@@ -42,18 +38,19 @@ if (empty($content_sections)) {
     }
 }
 
-// Section keys for media bucketing: slugified label
-$section_keys = array_map(
+$section_keys  = array_map(
     fn($s) => strtolower(preg_replace('/[^a-z0-9]/i', '', $s['label'])),
     $content_sections
 );
 
-// Bucket files: prefix match → section index, else → unassigned
 $section_media = array_fill(0, count($content_sections), []);
 $unassigned    = [];
 
 foreach ($all_media as $f) {
     if (!in_array($f['ext'], $media_exts)) continue;
+    // Thumbnail files are only for the Work list — skip on detail page
+    if (preg_match('/^thumb[\-_.]/i', $f['name'])) continue;
+    // Section buckets
     $matched = false;
     foreach ($section_keys as $idx => $key) {
         if ($key === '') continue;
@@ -69,24 +66,25 @@ foreach ($all_media as $f) {
     }
 }
 
-// Hero: video embed takes priority.
-// Otherwise look for an explicit hero-* file first, then fall back to first image.
-$has_video = !empty($project['video_url']);
-$hero_img  = null;
-if (!$has_video) {
-    // Prefer file named hero-* or hero.*
+// ── Hero media ────────────────────────────────────────────────
+// Priority: 1) video_url embed  2) hero-* file (image or video)  3) first unassigned image
+$has_video_embed = !empty($project['video_url']);
+$hero_file       = null;
+
+if (!$has_video_embed) {
+    // Prefer explicit hero-* file (any media type)
     foreach ($unassigned as $i => $f) {
-        if (preg_match('/^hero[\-_.]/i', $f['name']) && in_array($f['ext'], $img_exts)) {
-            $hero_img = $f;
+        if (preg_match('/^hero[\-_.]/i', $f['name'])) {
+            $hero_file = $f;
             array_splice($unassigned, $i, 1);
             break;
         }
     }
-    // Fallback: first unassigned image (backward compat)
-    if (!$hero_img) {
+    // Fallback: first unassigned image that isn't a gallery file
+    if (!$hero_file) {
         foreach ($unassigned as $i => $f) {
             if (in_array($f['ext'], $img_exts) && !preg_match('/^gallery[\-_.]/i', $f['name'])) {
-                $hero_img = $f;
+                $hero_file = $f;
                 array_splice($unassigned, $i, 1);
                 break;
             }
@@ -94,7 +92,8 @@ if (!$has_video) {
     }
 }
 
-// gallery-* files go to gallery; remaining unassigned files also go to gallery
+// ── Gallery carousel ──────────────────────────────────────────
+// gallery-* files + remaining unassigned go to the carousel
 $gallery = array_values(array_filter($unassigned, fn($f) => in_array($f['ext'], $media_exts)));
 
 // Helper: render one media file (img or video)
@@ -111,16 +110,21 @@ function render_media_file(array $f, string $cls = ''): void {
 render_header($project['title']);
 ?>
 
-<!-- ── Hero ──────────────────────────────────────────────── -->
+<!-- ── Hero media ─────────────────────────────────────────── -->
 <div class="pd-hero">
-  <?php if ($has_video): ?>
+  <?php if ($has_video_embed): ?>
     <iframe class="pd-hero-video"
             src="<?= htmlspecialchars($project['video_url']) ?>"
             frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
-  <?php elseif ($hero_img): ?>
-    <img class="pd-hero-img"
-         src="<?= htmlspecialchars($hero_img['url']) ?>"
-         alt="<?= htmlspecialchars($project['title']) ?>">
+  <?php elseif ($hero_file): ?>
+    <?php if (in_array($hero_file['ext'], $vid_exts)): ?>
+      <video class="pd-hero-vid" src="<?= htmlspecialchars($hero_file['url']) ?>"
+             autoplay muted loop playsinline></video>
+    <?php else: ?>
+      <img class="pd-hero-img"
+           src="<?= htmlspecialchars($hero_file['url']) ?>"
+           alt="<?= htmlspecialchars($project['title']) ?>">
+    <?php endif; ?>
   <?php else: ?>
     <div class="pd-hero-placeholder"></div>
   <?php endif; ?>
@@ -176,23 +180,16 @@ render_header($project['title']);
 
 <!-- ── Content sections ──────────────────────────────────── -->
 <div class="pd-body">
-
 <?php foreach ($content_sections as $idx => $s):
   $text  = trim($s['body'] ?? '');
   $files = $section_media[$idx] ?? [];
 ?>
 <div class="pd-section">
-
   <div class="pd-section-label"><?= htmlspecialchars($s['label'] ?? '') ?></div>
-
   <div class="pd-section-content">
-
-    <!-- left: text -->
     <div class="pd-section-text">
       <?= $text !== '' ? nl2br(htmlspecialchars($text)) : '' ?>
     </div>
-
-    <!-- right: media or placeholder -->
     <div class="pd-section-right">
       <?php if (!empty($files)): ?>
         <div class="pd-section-media pd-section-media--<?= count($files) === 1 ? 'single' : 'grid' ?>">
@@ -203,28 +200,79 @@ render_header($project['title']);
           <?php endforeach; ?>
         </div>
       <?php else: ?>
-        <div class="pd-media-placeholder">
-          <span>media</span>
-        </div>
+        <div class="pd-media-placeholder"><span>media</span></div>
       <?php endif; ?>
     </div>
-
-  </div><!-- /.pd-section-content -->
-
-</div><!-- /.pd-section -->
+  </div>
+</div>
 <?php endforeach; ?>
-
 </div><!-- /.pd-body -->
 
-<!-- ── Bottom gallery (unassigned files) ─────────────────── -->
+<!-- ── Gallery carousel ──────────────────────────────────── -->
 <?php if (!empty($gallery)): ?>
-<div class="pd-gallery">
-  <?php foreach ($gallery as $f): ?>
-  <div class="pd-gallery-item">
-    <?php render_media_file($f, 'pd-gallery-asset'); ?>
+<div class="pd-carousel" id="pd-carousel">
+  <div class="pd-carousel-track">
+    <?php foreach ($gallery as $i => $f): ?>
+    <div class="pd-carousel-slide <?= $i === 0 ? 'active' : '' ?>">
+      <?php if (in_array($f['ext'], $vid_exts)): ?>
+        <video class="pd-gallery-asset" controls playsinline preload="metadata"
+               src="<?= htmlspecialchars($f['url']) ?>"></video>
+      <?php else: ?>
+        <img class="pd-gallery-asset" src="<?= htmlspecialchars($f['url']) ?>"
+             alt="" loading="lazy">
+      <?php endif; ?>
+    </div>
+    <?php endforeach; ?>
   </div>
-  <?php endforeach; ?>
+  <?php if (count($gallery) > 1): ?>
+  <button class="pd-carousel-btn pd-carousel-prev" aria-label="Previous">&#8249;</button>
+  <button class="pd-carousel-btn pd-carousel-next" aria-label="Next">&#8250;</button>
+  <div class="pd-carousel-dots">
+    <?php foreach ($gallery as $i => $f): ?>
+    <span class="pd-carousel-dot <?= $i === 0 ? 'active' : '' ?>" data-idx="<?= $i ?>"></span>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
 </div>
+
+<script>
+(function () {
+  var car    = document.getElementById('pd-carousel');
+  var slides = car.querySelectorAll('.pd-carousel-slide');
+  var dots   = car.querySelectorAll('.pd-carousel-dot');
+  if (slides.length <= 1) return;
+
+  var current = 0;
+
+  function goTo(idx) {
+    slides[current].classList.remove('active');
+    if (dots[current]) dots[current].classList.remove('active');
+    current = (idx + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    if (dots[current]) dots[current].classList.add('active');
+  }
+
+  car.querySelector('.pd-carousel-prev').addEventListener('click', function () { goTo(current - 1); });
+  car.querySelector('.pd-carousel-next').addEventListener('click', function () { goTo(current + 1); });
+  dots.forEach(function (dot) {
+    dot.addEventListener('click', function () { goTo(parseInt(dot.dataset.idx)); });
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft')  goTo(current - 1);
+    if (e.key === 'ArrowRight') goTo(current + 1);
+  });
+
+  // Touch swipe
+  var tx = 0;
+  car.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  car.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
+  });
+}());
+</script>
 <?php endif; ?>
 
 <!-- ── Back link ─────────────────────────────────────────── -->

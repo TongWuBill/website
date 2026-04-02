@@ -59,6 +59,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
     exit;
 }
 
+// ── Handle media upload (thumbnail) ──────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_thumbnail') {
+    if (!empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
+        if (in_array($ext, $allowed_exts)) {
+            $dir = get_project_media_path($project['slug']);
+            if (!is_dir($dir)) mkdir($dir, 0775, true);
+            // Delete any existing thumbnail file first (only one thumbnail)
+            foreach (scandir($dir) ?: [] as $f) {
+                if (preg_match('/^thumb[\-_.]/i', $f) && is_file("$dir/$f")) unlink("$dir/$f");
+            }
+            $dest = $dir . '/thumb-' . time() . '.' . $ext;
+            move_uploaded_file($_FILES['media']['tmp_name'], $dest);
+        }
+    }
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    exit;
+}
+
 // ── Handle media upload (hero) ───────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_hero') {
     if (!empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
@@ -149,12 +168,15 @@ $img_exts     = ['jpg','jpeg','png','webp','gif'];
 
 $section_keys  = array_map(fn($s) => section_key($s['label']), $sections_data);
 $section_media = array_fill(0, count($sections_data), []);
+$thumb_files   = [];
 $hero_files    = [];
 $gallery_files = [];
 $unassigned    = [];
 
 foreach ($all_media as $f) {
     if (!in_array($f['ext'], $media_exts)) continue;
+    // Explicit thumbnail bucket
+    if (preg_match('/^thumb[\-_.]/i', $f['name'])) { $thumb_files[] = $f; continue; }
     // Explicit hero bucket
     if (preg_match('/^hero[\-_.]/i', $f['name'])) { $hero_files[] = $f; continue; }
     // Explicit gallery bucket
@@ -443,16 +465,16 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
 </div>
 <?php endforeach; ?>
 
-<!-- Hero bucket -->
+<!-- Thumbnail bucket -->
 <div class="media-bucket">
     <div class="media-bucket-head">
-        <span class="media-bucket-label">Hero Image</span>
-        <span class="media-bucket-key">shown full-width at top of project page</span>
+        <span class="media-bucket-label">Thumbnail</span>
+        <span class="media-bucket-key">shown on the Work list page</span>
     </div>
     <div class="media-bucket-body">
-        <?php if (!empty($hero_files)): ?>
+        <?php if (!empty($thumb_files)): ?>
         <div class="media-grid">
-            <?php foreach ($hero_files as $f): ?>
+            <?php foreach ($thumb_files as $f): ?>
             <div class="media-item">
                 <?php if (in_array($f['ext'], $img_exts)): ?>
                     <img src="<?= hv($f['url']) ?>" alt="">
@@ -469,16 +491,58 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
             <?php endforeach; ?>
         </div>
         <?php else: ?>
-        <p class="media-empty">No hero image yet. Upload one to replace the placeholder.</p>
+        <p class="media-empty">No thumbnail yet. Without one, the Work page falls back to the first image in the folder.</p>
+        <?php endif; ?>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="upload_thumbnail">
+            <div class="upload-row">
+                <input type="file" name="media" accept="image/*">
+                <button type="submit" class="upload-btn">Upload thumbnail</button>
+            </div>
+            <p class="media-hint">Uploading a new thumbnail replaces the existing one.</p>
+        </form>
+    </div>
+</div>
+
+<!-- Hero media bucket -->
+<div class="media-bucket">
+    <div class="media-bucket-head">
+        <span class="media-bucket-label">Hero Media</span>
+        <span class="media-bucket-key">shown full-width at top of project page</span>
+    </div>
+    <div class="media-bucket-body">
+        <?php if (!empty($hero_files)): ?>
+        <div class="media-grid">
+            <?php foreach ($hero_files as $f): ?>
+            <div class="media-item">
+                <?php if (in_array($f['ext'], $img_exts)): ?>
+                    <img src="<?= hv($f['url']) ?>" alt="">
+                <?php elseif (in_array($f['ext'], ['mp4','webm','mov'])): ?>
+                    <video src="<?= hv($f['url']) ?>"></video>
+                <?php else: ?>
+                    <div class="media-item-ext"><?= hv($f['ext']) ?></div>
+                <?php endif; ?>
+                <div class="media-item-name"><?= hv($f['name']) ?></div>
+                <form method="POST" onsubmit="return confirm('Delete this file?')">
+                    <input type="hidden" name="action" value="delete_file">
+                    <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
+                    <button type="submit" class="media-del">✕</button>
+                </form>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <p class="media-empty">No hero media yet. Upload one to replace the placeholder.</p>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_hero">
             <div class="upload-row">
-                <input type="file" name="media" accept="image/*">
+                <input type="file" name="media" accept="image/*,video/*">
                 <button type="submit" class="upload-btn">Upload hero</button>
             </div>
-            <p class="media-hint">Uploading a new hero replaces the existing one. Ignored if a Video URL is set.</p>
+            <p class="media-hint">Uploading a new hero replaces the existing one. Ignored if a Video URL is set in Info.</p>
         </form>
     </div>
 </div>
