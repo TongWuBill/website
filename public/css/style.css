@@ -155,12 +155,16 @@ nav {
   object-fit: cover;
   object-position: center;
   opacity: 0;
-  transition: opacity 1.5s ease-in-out;
+  transition: opacity 0.6s ease-in-out;
   display: block;
 }
 
 .home-hero-image img.hero-slide--active {
-  opacity: 0.55;
+  opacity: 0.9;
+}
+
+.home-hero-image img.hero-slide--active:not(.is-loaded) {
+  opacity: 0;
 }
 
 .home-hero-text {
@@ -892,6 +896,8 @@ nav {
   aspect-ratio: 3 / 4;
   object-fit: cover;
   object-position: center top;
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .about-photo-placeholder {
@@ -1102,6 +1108,16 @@ nav {
 /* ─────────────────────────────────────────
    Project detail
 ───────────────────────────────────────── */
+
+/* ── Hero image needs its own transition (others already have one) ── */
+.pd-hero-img {
+  transition: opacity 0.55s ease;
+}
+
+/* ── Section media also needs a transition ── */
+.pd-media-asset {
+  transition: opacity 0.5s ease;
+}
 
 /* ── Hero ── */
 .pd-hero {
@@ -1403,4 +1419,68 @@ video.pd-media-asset {
 
 @media (max-width: 600px) {
   .body-text { font-size: 16px; }
+}
+
+/* ─────────────────────────────────────────
+   Page loader — breathing square
+───────────────────────────────────────── */
+
+.page-loader {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 9000;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+/* Hide once JS marks content ready */
+body.content-ready .page-loader { opacity: 0; }
+
+/* Also hide during bfcache restore (instant snap) */
+body.instant .page-loader { opacity: 0; transition: none; }
+
+.page-loader-sq {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  animation: loader-breathe 1.5s ease-in-out infinite;
+}
+
+@keyframes loader-breathe {
+  0%, 100% { opacity: 0.15; transform: scale(0.85); }
+  50%       { opacity: 0.85; transform: scale(1);    }
+}
+
+/* ─────────────────────────────────────────
+   Media fade-in — Apple-style loading
+   ─────────────────────────────────────────
+   Images/video start invisible via :not(.is-loaded).
+   JS adds .is-loaded on the load/loadeddata event,
+   which removes this selector → the element's base
+   opacity + existing transition takes over cleanly.
+───────────────────────────────────────── */
+
+/* Exp modal media needs its own transition */
+.exp-modal-img,
+.exp-modal-vid {
+  display: block;
+  transition: opacity 0.45s ease;
+}
+
+/* Initial hidden state — !important overrides base opacity values (0.7, 0.85 etc.) */
+.pd-hero-img:not(.is-loaded),
+.pd-media-asset:not(.is-loaded),
+.pd-gallery-asset:not(.is-loaded),
+.exp-card-image img:not(.is-loaded),
+.work-card-image img:not(.is-loaded),
+.home-work-image img:not(.is-loaded),
+.exp-modal-img:not(.is-loaded),
+.exp-modal-vid:not(.is-loaded),
+.about-photo-img:not(.is-loaded) {
+  opacity: 0 !important;
+  transform: translateY(10px);
 }

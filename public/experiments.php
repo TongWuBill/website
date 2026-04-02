@@ -154,15 +154,16 @@ function renderModal(expIdx, mediaIdx) {
         const f = media[mediaIdx];
         if (['mp4','webm','mov'].includes(f.ext)) {
             const v = document.createElement('video');
-            v.src      = f.url;
-            v.controls = true;
-            v.autoplay = false;
-            v.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block';
+            v.src       = f.url;
+            v.controls  = true;
+            v.autoplay  = false;
+            v.className = 'exp-modal-vid';
             mediaWrap.appendChild(v);
         } else {
             const img = document.createElement('img');
-            img.src = f.url;
-            img.alt = exp.title;
+            img.src       = f.url;
+            img.alt       = exp.title;
+            img.className = 'exp-modal-img';
             mediaWrap.appendChild(img);
         }
     }

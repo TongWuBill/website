@@ -39,6 +39,7 @@ function render_header($title = '') {
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
                         content.classList.add('is-visible');
+                        document.body.classList.add('content-ready');
                     });
                 });
             });
@@ -47,6 +48,55 @@ function render_header($title = '') {
             window.addEventListener('pageshow', function (e) {
                 if (e.persisted) document.body.classList.add('instant');
             });
+
+            // ── Media fade-in (Apple-style) ──────────────────────────
+            // Images/video start at opacity:0 via CSS :not(.is-loaded).
+            // We add .is-loaded once the media is fully decoded so the
+            // browser-native transition reveals it smoothly.
+            (function () {
+                var SEL = [
+                    '.pd-hero-img',
+                    '.pd-media-asset',
+                    '.pd-gallery-asset',
+                    '.exp-card-image img',
+                    '.work-card-image img',
+                    '.home-work-image img',
+                    '.hero-slide',
+                    '.about-photo-img',
+                    '.exp-modal-img',
+                    '.exp-modal-vid'
+                ].join(',');
+
+                function reveal(el) { el.classList.add('is-loaded'); }
+
+                function watch(el) {
+                    if (el.tagName === 'IMG') {
+                        // Already decoded (cached) — reveal immediately before next paint
+                        if (el.complete && el.naturalWidth > 0) { reveal(el); return; }
+                        el.addEventListener('load',  function () { reveal(this); }, { once: true });
+                        el.addEventListener('error', function () { reveal(this); }, { once: true });
+                    } else if (el.tagName === 'VIDEO') {
+                        if (el.readyState >= 2) { reveal(el); return; }
+                        el.addEventListener('loadeddata', function () { reveal(this); }, { once: true });
+                        el.addEventListener('error',      function () { reveal(this); }, { once: true });
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    document.querySelectorAll(SEL).forEach(watch);
+
+                    // Watch DOM for dynamically inserted media (e.g. experiment modal)
+                    new MutationObserver(function (mutations) {
+                        mutations.forEach(function (m) {
+                            m.addedNodes.forEach(function (n) {
+                                if (n.nodeType !== 1) return;
+                                if (n.matches && n.matches(SEL)) watch(n);
+                                if (n.querySelectorAll) n.querySelectorAll(SEL).forEach(watch);
+                            });
+                        });
+                    }).observe(document.body, { childList: true, subtree: true });
+                });
+            }());
 
             // Exit: fade body, navigate quickly so pages overlap
             document.addEventListener('click', function (e) {
@@ -69,6 +119,14 @@ function render_header($title = '') {
                 <a href="/about">About</a>
             </div>
         </nav>
+
+        <!-- Loading indicator — outside .page-content so it isn't masked by
+             the content opacity transition. Visible by default, hidden via
+             body.content-ready once JS fires. -->
+        <div class="page-loader" aria-hidden="true">
+            <div class="page-loader-sq"></div>
+        </div>
+
         <div class="page-content">
     <?php
 }
