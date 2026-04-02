@@ -1,7 +1,21 @@
 <?php
 require_once __DIR__ . '/../src/functions.php';
+require_once __DIR__ . '/../src/media.php';
 
 $projects = get_all_projects();
+
+// Pre-fetch the first image for each project card
+$img_exts = ['jpg','jpeg','png','webp','gif'];
+$thumbs   = [];
+foreach ($projects as $p) {
+    $files = list_project_media($p['slug']);
+    foreach ($files as $f) {
+        if (in_array($f['ext'], $img_exts)) {
+            $thumbs[$p['slug']] = $f['url'];
+            break;
+        }
+    }
+}
 
 render_header('Work');
 ?>
@@ -15,14 +29,13 @@ render_header('Work');
 
   <div class="work-grid">
     <?php foreach ($projects as $i => $p):
-        $img = '/media/projects/' . $p['slug'] . '.jpg';
-        $img_exists = file_exists(__DIR__ . '/media/projects/' . $p['slug'] . '.jpg');
+        $thumb    = $thumbs[$p['slug']] ?? null;
         $featured = ($i === 0) ? ' work-card--featured' : '';
     ?>
     <a href="/p/<?= htmlspecialchars($p['slug']) ?>" class="work-card<?= $featured ?>">
       <div class="work-card-image">
-        <?php if ($img_exists): ?>
-          <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($p['title']) ?>">
+        <?php if ($thumb): ?>
+          <img src="<?= htmlspecialchars($thumb) ?>" alt="<?= htmlspecialchars($p['title']) ?>">
         <?php endif; ?>
         <div class="work-card-overlay"></div>
       </div>

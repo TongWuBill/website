@@ -12,7 +12,7 @@ $project = $id ? get_project_by_id($id) : false;
 
 if (!$project) {
     http_response_code(404);
-    echo '<p>Project not found. <a href="/admin/dashboard.php">Back to dashboard</a></p>';
+    echo '<p>Project not found. <a href="/admin/dashboard.php?tab=projects">Back to dashboard</a></p>';
     exit;
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db = get_db();
             $db->prepare("DELETE FROM projects WHERE id = ?")->execute([$id]);
             delete_project_folder($project['slug']);
-            header('Location: /admin/dashboard.php');
+            header('Location: /admin/dashboard.php?tab=projects');
             exit;
         } catch (Exception $e) {
             $error = 'Delete failed: ' . $e->getMessage();
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="password" id="password" name="password" autofocus>
             <div class="actions">
                 <button type="submit">Delete</button>
-                <a href="/admin/dashboard.php">Cancel</a>
+                <a href="/admin/dashboard.php?tab=projects">Cancel</a>
             </div>
         </form>
     </div>

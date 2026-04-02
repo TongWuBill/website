@@ -7,13 +7,20 @@ require_login();
 // ── Required schema columns ───────────────────────────────────────────────────
 $required_columns = [
     'year'         => 'TEXT',
+    'subtitle'     => 'TEXT',
     'category'     => 'TEXT',
+    'skillset'     => 'TEXT',
+    'material'     => 'TEXT',
+    'exhibition'   => 'TEXT',
+    'location'     => 'TEXT',
+    'sections'     => 'TEXT',
     'cover_image'  => 'TEXT',
     'video_url'    => 'TEXT',
     'is_published' => 'INTEGER DEFAULT 1',
     'created_at'   => 'TEXT',
     'updated_at'   => 'TEXT',
     'edit_count'   => 'INTEGER DEFAULT 0',
+    'sort_order'   => 'INTEGER DEFAULT 0',
 ];
 
 // ── Run migration if requested ────────────────────────────────────────────────
@@ -36,6 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $migration_results[] = ['status' => 'added', 'col' => $col, 'def' => $def];
             }
         }
+        // Backfill sort_order for existing rows
+        $db->exec("UPDATE projects SET sort_order = id WHERE sort_order = 0 OR sort_order IS NULL");
     } catch (Throwable $e) {
         $migration_results[] = ['status' => 'error', 'col' => '—', 'def' => $e->getMessage()];
     }
@@ -142,7 +151,7 @@ $healthy = $exists && $readable && $writable && $dir_writable && $sqlite_write_o
 
 <div class="header">
     <h1>System Health</h1>
-    <a href="/admin/dashboard.php" class="btn">&larr; Dashboard</a>
+    <a href="/admin/dashboard.php" class="btn">&larr; Admin</a>
 </div>
 
 <!-- ── Overall status ──────────────────────────────────────────────────── -->

@@ -1,98 +1,167 @@
 <?php
 require_once __DIR__ . '/../src/functions.php';
-render_header('About');
+require_once __DIR__ . '/../src/media.php';
+
+$about_photos = list_about_media();
+$about_photo  = !empty($about_photos) ? $about_photos[0] : null;
+
+render_header('About — Tong Wu');
 ?>
 
-<div class="about-wrap">
+<div class="about-page">
+  <div class="about-layout">
 
-  <!-- 1. Hero -->
-  <section class="about-hero">
-    <div class="about-portrait">portrait</div>
-    <div class="about-hero-text">
-      <h1 class="about-name">Tong Wu</h1>
-      <p class="about-title">Interactive Artist / Creative Technologist</p>
-    </div>
-  </section>
+    <!-- ── Main content ── -->
+    <div class="about-main">
 
-  <!-- 2. Intro -->
-  <section class="about-section">
-    <p class="section-label">In short</p>
-    <p>Short statement here. One or two sentences that capture the core of the practice — what you make, how, and why.</p>
-    <p>Second line if needed. Something about the kind of experiences or questions you work with.</p>
-  </section>
+      <!-- Intro -->
+      <header class="about-head">
+        <p class="about-eyebrow">Tong Wu</p>
+        <h1 class="about-headline">Creative technologist working with AI,
+real-time systems, and interactive media.</h1>
+        <p class="about-sub">Focused on translating data, sound, and human behavior
+into responsive and embodied experiences.</p>
+      </header>
 
-  <!-- 3. Artist Statement -->
-  <section class="about-section">
-    <p class="section-label">Statement</p>
-    <p>Artist statement goes here. A focused paragraph about the themes, methods, and intentions behind the work. Write in first person. Keep it direct and specific rather than abstract.</p>
-  </section>
+      <!-- Education -->
+      <section class="ab-row">
+        <h2 class="ab-label">Education</h2>
+        <div class="ab-content">
 
-  <!-- 4. Practice / Method -->
-  <section class="about-section">
-    <p class="section-label">Practice</p>
-    <p>Describe the first dimension of your practice — materials, systems, or processes you work with.</p>
-    <p>Describe a second dimension — how the work operates in space or involves audience/interaction.</p>
-    <p>Describe a third dimension if needed — research threads, collaborations, or ongoing questions.</p>
-  </section>
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Pratt Institute</div>
+            <div class="ab-entry-secondary">MFA, Digital Art (Interactive Arts)</div>
+            <div class="ab-entry-meta">2023–2025</div>
+          </div>
 
-  <!-- 5. Selected Experience -->
-  <section class="about-section">
-    <p class="section-label">Experience</p>
-    <ul class="experience-list">
-      <li>
-        <span class="exp-year">2024</span>
-        <div class="exp-detail">
-          Exhibition title or residency name
-          <span>Venue / Institution, City</span>
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Duke University</div>
+            <div class="ab-entry-secondary">BFA, Media and Arts</div>
+            <div class="ab-entry-meta">2018–2022</div>
+          </div>
+
         </div>
-      </li>
-      <li>
-        <span class="exp-year">2023</span>
-        <div class="exp-detail">
-          Exhibition title or residency name
-          <span>Venue / Institution, City</span>
-        </div>
-      </li>
-      <li>
-        <span class="exp-year">2022</span>
-        <div class="exp-detail">
-          Degree / Programme name
-          <span>School / University, City</span>
-        </div>
-      </li>
-      <li>
-        <span class="exp-year">2021</span>
-        <div class="exp-detail">
-          Exhibition title or role
-          <span>Venue / Institution, City</span>
-        </div>
-      </li>
-    </ul>
-  </section>
+      </section>
 
-  <!-- 6. Tools / Systems -->
-  <section class="about-section">
-    <p class="section-label">Tools &amp; Systems</p>
-    <ul class="tools-list">
-      <li>Tool one</li>
-      <li>Tool two</li>
-      <li>Tool three</li>
-      <li>Tool four</li>
-      <li>Tool five</li>
-      <li>Tool six</li>
-    </ul>
-  </section>
+      <!-- Experience -->
+      <section class="ab-row">
+        <h2 class="ab-label">Experience</h2>
+        <div class="ab-content">
 
-  <!-- 7. Contact -->
-  <section class="about-section">
-    <p class="section-label">Contact</p>
-    <ul class="contact-links">
-      <li><a href="mailto:tongwubill@outlook.com">tongwubill@outlook.com</a></li>
-      <li><a href="#">Instagram</a></li>
-      <li><a href="#">LinkedIn</a></li>
-    </ul>
-  </section>
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Assistant Researcher</div>
+            <div class="ab-entry-secondary">Experimental Sound &amp; Interactive Media, Pratt Institute</div>
+            <div class="ab-entry-meta">2025–Present</div>
+          </div>
 
-</div>
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Lab Manager</div>
+            <div class="ab-entry-secondary">Digital Fabrication Lab, Pratt Institute</div>
+            <div class="ab-entry-meta">2024–2025</div>
+          </div>
+
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Assistant Researcher</div>
+            <div class="ab-entry-secondary">HCI Lab, Duke Kunshan University</div>
+            <div class="ab-entry-meta">2022–2023</div>
+          </div>
+
+          <div class="ab-entry">
+            <div class="ab-entry-primary">Creative Art Producer</div>
+            <div class="ab-entry-secondary">Leo Burnett</div>
+            <div class="ab-entry-meta">2021</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Selected Focus -->
+      <section class="ab-row">
+        <h2 class="ab-label">Selected Focus</h2>
+        <div class="ab-content">
+          <ul class="ab-list">
+            <li>Real-time audiovisual systems</li>
+            <li>Projection mapping installations</li>
+            <li>Interactive performance systems</li>
+            <li>Tangible / embodied interaction</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Skills -->
+      <section class="ab-row">
+        <h2 class="ab-label">Skills</h2>
+        <div class="ab-content">
+          <ul class="ab-list ab-list--skills">
+            <li>
+              <span class="ab-skill-cat">Interactive systems</span>
+              <span class="ab-skill-tools">TouchDesigner, OSC, sensors</span>
+            </li>
+            <li>
+              <span class="ab-skill-cat">AI &amp; generative media</span>
+              <span class="ab-skill-tools">ComfyUI, video synthesis</span>
+            </li>
+            <li>
+              <span class="ab-skill-cat">Hardware &amp; prototyping</span>
+              <span class="ab-skill-tools">Arduino, signal processing</span>
+            </li>
+            <li>
+              <span class="ab-skill-cat">3D &amp; fabrication</span>
+              <span class="ab-skill-tools">Fusion 360, digital fabrication</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="ab-row ab-row--last">
+        <h2 class="ab-label">Contact</h2>
+        <div class="ab-content">
+          <div class="ab-contact-links">
+
+            <a href="mailto:tongwubill@outlook.com" class="ab-contact-link">
+              <span class="ab-contact-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="1" y="2.5" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.1"/>
+                  <path d="M1 4L7 8.5L13 4" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="ab-contact-text">tongwubill@outlook.com</span>
+            </a>
+
+            <a href="https://www.linkedin.com/in/tongwubill" class="ab-contact-link" target="_blank" rel="noopener noreferrer">
+              <span class="ab-contact-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="1" y="1" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.1"/>
+                  <circle cx="4.2" cy="4.2" r="0.85" fill="currentColor"/>
+                  <line x1="4.2" y1="6" x2="4.2" y2="10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  <path d="M7 10.5V8C7 6.9 7.7 6.3 8.7 6.3S10.5 6.9 10.5 8V10.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="7" y1="6" x2="7" y2="10.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <span class="ab-contact-text">linkedin.com/in/tongwubill</span>
+            </a>
+
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /.about-main -->
+
+    <!-- ── Sidebar photo ── -->
+    <aside class="about-sidebar">
+      <div class="about-photo">
+        <?php if ($about_photo): ?>
+          <img src="<?= htmlspecialchars($about_photo['url']) ?>"
+               alt="Tong Wu"
+               class="about-photo-img">
+        <?php else: ?>
+          <div class="about-photo-placeholder"></div>
+        <?php endif; ?>
+      </div>
+    </aside>
+
+  </div><!-- /.about-layout -->
+</div><!-- /.about-page -->
 
 <?php render_footer(); ?>

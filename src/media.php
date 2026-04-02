@@ -89,6 +89,10 @@ function list_home_media(): array {
     return _list_media_files(get_home_media_path());
 }
 
+function list_about_media(): array {
+    return _list_media_files(get_about_media_path());
+}
+
 // Returns all files in a folder as ['name' => ..., 'url' => ..., 'size' => ..., 'ext' => ...]
 function _list_media_files(string $path): array {
     if (!is_dir($path)) return [];

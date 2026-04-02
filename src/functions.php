@@ -23,19 +23,32 @@ function render_header($title = '') {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title><?= htmlspecialchars($title ?: 'Tong Wu') ?></title>
+        <!-- sets initial state before first paint so the enter animation is visible even on initial load -->
+        <style>.page-content { opacity: 0.08; transform: translateY(10px); }</style>
         <link rel="stylesheet" href="/css/style.css">
     </head>
     <body>
         <script>
         (function () {
-            // bfcache restore — skip enter animation, snap visible
+            // Enter: wait for DOMContentLoaded, then double-rAF to guarantee
+            // the browser paints one frame at the initial state (opacity 0.08)
+            // before the transition fires — works on both initial load and navigation.
+            document.addEventListener('DOMContentLoaded', function () {
+                var content = document.querySelector('.page-content');
+                if (!content) return;
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        content.classList.add('is-visible');
+                    });
+                });
+            });
+
+            // bfcache restore — skip transition, snap visible
             window.addEventListener('pageshow', function (e) {
                 if (e.persisted) document.body.classList.add('instant');
             });
 
-            // Exit: start fade, navigate after 100ms (before fade completes)
-            // so the new page begins rendering while old page is still mid-fade —
-            // this creates a crossfade overlap instead of a gap to black.
+            // Exit: fade body, navigate quickly so pages overlap
             document.addEventListener('click', function (e) {
                 var link = e.target.closest('a[href]');
                 if (!link) return;
@@ -56,11 +69,13 @@ function render_header($title = '') {
                 <a href="/about">About</a>
             </div>
         </nav>
+        <div class="page-content">
     <?php
 }
 
 function render_footer() {
     ?>
+        </div><!-- /.page-content -->
     </body>
     </html>
     <?php
