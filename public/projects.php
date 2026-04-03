@@ -33,8 +33,11 @@ render_header('Work');
 <div class="work-wrap">
 
   <div class="work-page-header">
-    <h1>Work</h1>
-    <span class="work-count"><?= count($projects) ?> projects</span>
+    <div class="work-page-header-top">
+      <h1>Work</h1>
+      <span class="work-count"><?= count($projects) ?> projects</span>
+    </div>
+    <p class="work-page-subtitle">Explorations in interactive systems, media, and perception.</p>
   </div>
 
   <div class="work-grid">

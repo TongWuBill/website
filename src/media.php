@@ -113,6 +113,7 @@ function _list_media_files(string $path): array {
             'url'  => $rel,
             'ext'  => strtolower(pathinfo($item, PATHINFO_EXTENSION)),
             'size' => filesize($full),
+            'path' => $full,
         ];
     }
 

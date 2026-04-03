@@ -13,7 +13,7 @@ if (!$project) {
 
 // ── Media bucketing ───────────────────────────────────────────
 $all_media  = list_project_media($project['slug']);
-$media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov'];
+$media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx'];
 $img_exts   = ['jpg','jpeg','png','webp','gif'];
 $vid_exts   = ['mp4','webm','mov'];
 
@@ -96,14 +96,41 @@ if (!$has_video_embed) {
 // gallery-* files + remaining unassigned go to the carousel
 $gallery = array_values(array_filter($unassigned, fn($f) => in_array($f['ext'], $media_exts)));
 
-// Helper: render one media file (img or video)
-function render_media_file(array $f, string $cls = ''): void {
-    $url = htmlspecialchars($f['url']);
-    $ext = $f['ext'];
+// Helper: convert YouTube/Vimeo watch URLs to embed URLs
+function to_embed_url(string $url): string {
+    if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $m)) {
+        return 'https://www.youtube.com/embed/' . $m[1];
+    }
+    if (preg_match('/vimeo\.com\/(?:.*\/)?(\d+)/', $url, $m)) {
+        return 'https://player.vimeo.com/video/' . $m[1];
+    }
+    return $url;
+}
+
+// Helper: unified media renderer — image, video, PDF, TXT, DOC/DOCX
+function render_any_file(array $f, string $cls = ''): void {
+    $url  = htmlspecialchars($f['url']);
+    $ext  = strtolower($f['ext']);
+    $name = htmlspecialchars(basename($f['name']));
+
     if (in_array($ext, ['mp4','webm','mov'])) {
         echo '<video class="' . $cls . '" controls playsinline preload="metadata" src="' . $url . '"></video>';
-    } else {
+    } elseif (in_array($ext, ['jpg','jpeg','png','webp','gif'])) {
         echo '<img class="' . $cls . '" src="' . $url . '" alt="" loading="lazy">';
+    } elseif ($ext === 'pdf') {
+        echo '<div class="media-pdf-wrap"><iframe src="' . $url . '" title="' . $name . '"></iframe></div>';
+    } elseif ($ext === 'txt') {
+        $raw = (isset($f['path']) && is_file($f['path']))
+            ? htmlspecialchars(file_get_contents($f['path']))
+            : '(Content unavailable)';
+        echo '<div class="media-txt-wrap"><pre class="media-txt-content">' . $raw . '</pre></div>';
+    } elseif (in_array($ext, ['doc','docx'])) {
+        $badge = strtoupper($ext);
+        echo '<div class="media-doc-card">'
+           . '<span class="media-doc-badge">' . $badge . '</span>'
+           . '<span class="media-doc-name">' . $name . '</span>'
+           . '<a class="media-doc-dl" href="' . $url . '" download>Download</a>'
+           . '</div>';
     }
 }
 
@@ -114,7 +141,7 @@ render_header($project['title']);
 <div class="pd-hero">
   <?php if ($has_video_embed): ?>
     <iframe class="pd-hero-video"
-            src="<?= htmlspecialchars($project['video_url']) ?>"
+            src="<?= htmlspecialchars(to_embed_url($project['video_url'])) ?>"
             frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
   <?php elseif ($hero_file): ?>
     <?php if (in_array($hero_file['ext'], $vid_exts)): ?>
@@ -191,11 +218,18 @@ render_header($project['title']);
       <?= $text !== '' ? nl2br(htmlspecialchars($text)) : '' ?>
     </div>
     <div class="pd-section-right">
-      <?php if (!empty($files)): ?>
+      <?php
+      $sec_media_url = trim($s['media_url'] ?? '');
+      if ($sec_media_url !== ''): ?>
+        <div class="pd-section-iframe-wrap">
+          <iframe src="<?= htmlspecialchars(to_embed_url($sec_media_url)) ?>"
+                  frameborder="0" allowfullscreen allow="autoplay; fullscreen"></iframe>
+        </div>
+      <?php elseif (!empty($files)): ?>
         <div class="pd-section-media pd-section-media--<?= count($files) === 1 ? 'single' : 'grid' ?>">
           <?php foreach ($files as $f): ?>
           <div class="pd-media-item">
-            <?php render_media_file($f, 'pd-media-asset'); ?>
+            <?php render_any_file($f, 'pd-media-asset'); ?>
           </div>
           <?php endforeach; ?>
         </div>
@@ -208,28 +242,26 @@ render_header($project['title']);
 <?php endforeach; ?>
 </div><!-- /.pd-body -->
 
-<!-- ── Gallery carousel ──────────────────────────────────── -->
+<!-- ── Gallery (peek carousel) ───────────────────────────── -->
 <?php if (!empty($gallery)): ?>
-<div class="pd-carousel" id="pd-carousel">
-  <div class="pd-carousel-track">
+<div class="pd-gallery" id="pd-gallery">
+  <div class="pd-gallery-track" id="pd-gallery-track">
     <?php foreach ($gallery as $i => $f): ?>
-    <div class="pd-carousel-slide <?= $i === 0 ? 'active' : '' ?>">
-      <?php if (in_array($f['ext'], $vid_exts)): ?>
-        <video class="pd-gallery-asset" controls playsinline preload="metadata"
-               src="<?= htmlspecialchars($f['url']) ?>"></video>
-      <?php else: ?>
-        <img class="pd-gallery-asset" src="<?= htmlspecialchars($f['url']) ?>"
-             alt="" loading="lazy">
-      <?php endif; ?>
+    <div class="pd-gallery-slide <?= $i === 0 ? 'active' : '' ?>">
+      <?php render_any_file($f, 'pd-gallery-asset'); ?>
     </div>
     <?php endforeach; ?>
   </div>
   <?php if (count($gallery) > 1): ?>
-  <button class="pd-carousel-btn pd-carousel-prev" aria-label="Previous">&#8249;</button>
-  <button class="pd-carousel-btn pd-carousel-next" aria-label="Next">&#8250;</button>
-  <div class="pd-carousel-dots">
+  <div class="pd-gallery-zone pd-gallery-prev" id="pd-gprev">
+    <div class="pd-gallery-arrow">&#8249;</div>
+  </div>
+  <div class="pd-gallery-zone pd-gallery-next" id="pd-gnext">
+    <div class="pd-gallery-arrow">&#8250;</div>
+  </div>
+  <div class="pd-gallery-dots">
     <?php foreach ($gallery as $i => $f): ?>
-    <span class="pd-carousel-dot <?= $i === 0 ? 'active' : '' ?>" data-idx="<?= $i ?>"></span>
+    <span class="pd-gallery-dot <?= $i === 0 ? 'active' : '' ?>" data-idx="<?= $i ?>"></span>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
@@ -237,37 +269,63 @@ render_header($project['title']);
 
 <script>
 (function () {
-  var car    = document.getElementById('pd-carousel');
-  var slides = car.querySelectorAll('.pd-carousel-slide');
-  var dots   = car.querySelectorAll('.pd-carousel-dot');
-  if (slides.length <= 1) return;
+  var wrap    = document.getElementById('pd-gallery');
+  var track   = document.getElementById('pd-gallery-track');
+  var slides  = wrap.querySelectorAll('.pd-gallery-slide');
+  var dots    = wrap.querySelectorAll('.pd-gallery-dot');
+  var prevBtn = document.getElementById('pd-gprev');
+  var nextBtn = document.getElementById('pd-gnext');
+  if (!track || slides.length <= 1) return;
 
+  var PEEK    = 64;
+  var GAP     = 0;
   var current = 0;
 
-  function goTo(idx) {
-    slides[current].classList.remove('active');
-    if (dots[current]) dots[current].classList.remove('active');
-    current = (idx + slides.length) % slides.length;
-    slides[current].classList.add('active');
-    if (dots[current]) dots[current].classList.add('active');
+  function slideW() { return wrap.offsetWidth - 2 * PEEK; }
+
+  function layout() {
+    var w = slideW();
+    slides.forEach(function (s) { s.style.width = w + 'px'; });
+    setTrack(current);
   }
 
-  car.querySelector('.pd-carousel-prev').addEventListener('click', function () { goTo(current - 1); });
-  car.querySelector('.pd-carousel-next').addEventListener('click', function () { goTo(current + 1); });
+  function setTrack(idx) {
+    var w = slideW();
+    track.style.transform = 'translateX(' + (PEEK - idx * (w + GAP)) + 'px)';
+  }
+
+  function goTo(idx) {
+    idx = (idx + slides.length) % slides.length;
+    slides[current].classList.remove('active');
+    if (dots[current]) dots[current].classList.remove('active');
+    current = idx;
+    slides[current].classList.add('active');
+    if (dots[current]) dots[current].classList.add('active');
+    setTrack(current);
+  }
+
+  layout();
+  window.addEventListener('resize', layout);
+
+  if (prevBtn) prevBtn.addEventListener('click', function () { goTo(current - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function () { goTo(current + 1); });
+
+  slides.forEach(function (s, i) {
+    s.addEventListener('click', function () { if (i !== current) goTo(i); });
+  });
+
   dots.forEach(function (dot) {
     dot.addEventListener('click', function () { goTo(parseInt(dot.dataset.idx)); });
   });
 
-  // Keyboard
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowLeft')  goTo(current - 1);
     if (e.key === 'ArrowRight') goTo(current + 1);
   });
 
-  // Touch swipe
   var tx = 0;
-  car.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
-  car.addEventListener('touchend', function (e) {
+  wrap.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  wrap.addEventListener('touchend', function (e) {
     var dx = e.changedTouches[0].clientX - tx;
     if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
   });

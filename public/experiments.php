@@ -12,8 +12,15 @@ foreach ($grouped as $cat => $items) {
         $media = list_experiment_media((int)$item['id']);
         $media_list = [];
         foreach ($media as $f) {
-            if (in_array($f['ext'], ['jpg','jpeg','png','webp','gif','mp4','webm','mov'])) {
-                $media_list[] = ['url' => $f['url'], 'ext' => $f['ext']];
+            $ext = $f['ext'];
+            if (in_array($ext, ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','doc','docx'])) {
+                $entry = ['url' => $f['url'], 'ext' => $ext, 'name' => $f['name']];
+                $media_list[] = $entry;
+            } elseif ($ext === 'txt') {
+                $content = (isset($f['path']) && is_file($f['path']))
+                    ? file_get_contents($f['path'])
+                    : '';
+                $media_list[] = ['url' => $f['url'], 'ext' => 'txt', 'name' => $f['name'], 'content' => $content];
             }
         }
         $all_experiments_js[] = [
@@ -52,17 +59,18 @@ render_header('Experiments');
         <?php foreach ($items as $item):
             // Find first image for thumbnail
             $media = list_experiment_media((int)$item['id']);
-            $thumb = null;
+            $thumb = null; $thumb_vid = null;
             foreach ($media as $f) {
-                if (in_array($f['ext'], ['jpg','jpeg','png','webp','gif'])) {
-                    $thumb = $f; break;
-                }
+                if (!$thumb && in_array($f['ext'], ['jpg','jpeg','png','webp','gif'])) { $thumb = $f; }
+                if (!$thumb_vid && in_array($f['ext'], ['mp4','webm','mov'])) { $thumb_vid = $f; }
             }
         ?>
         <li class="exp-card" data-idx="<?= $global_idx++ ?>">
           <div class="exp-card-image">
             <?php if ($thumb): ?>
               <img src="<?= htmlspecialchars($thumb['url']) ?>" alt="<?= htmlspecialchars($item['title']) ?>">
+            <?php elseif ($thumb_vid): ?>
+              <video src="<?= htmlspecialchars($thumb_vid['url']) ?>" muted playsinline preload="metadata"></video>
             <?php endif; ?>
           </div>
           <div class="exp-card-meta">
@@ -154,17 +162,36 @@ function renderModal(expIdx, mediaIdx) {
         const f = media[mediaIdx];
         if (['mp4','webm','mov'].includes(f.ext)) {
             const v = document.createElement('video');
-            v.src       = f.url;
-            v.controls  = true;
-            v.autoplay  = false;
+            v.src = f.url; v.controls = true; v.autoplay = false;
             v.className = 'exp-modal-vid';
             mediaWrap.appendChild(v);
-        } else {
+        } else if (['jpg','jpeg','png','webp','gif'].includes(f.ext)) {
             const img = document.createElement('img');
-            img.src       = f.url;
-            img.alt       = exp.title;
+            img.src = f.url; img.alt = exp.title;
             img.className = 'exp-modal-img';
             mediaWrap.appendChild(img);
+        } else if (f.ext === 'pdf') {
+            const wrap = document.createElement('div');
+            wrap.className = 'media-pdf-wrap media-pdf-wrap--modal';
+            const iframe = document.createElement('iframe');
+            iframe.src = f.url; iframe.title = f.name || 'Document';
+            wrap.appendChild(iframe);
+            mediaWrap.appendChild(wrap);
+        } else if (f.ext === 'txt') {
+            const wrap = document.createElement('div');
+            wrap.className = 'media-txt-wrap media-txt-wrap--modal';
+            const pre = document.createElement('pre');
+            pre.className = 'media-txt-content';
+            pre.textContent = f.content || '(No content)';
+            wrap.appendChild(pre);
+            mediaWrap.appendChild(wrap);
+        } else if (['doc','docx'].includes(f.ext)) {
+            const card = document.createElement('div');
+            card.className = 'media-doc-card media-doc-card--modal';
+            card.innerHTML = '<span class="media-doc-badge">' + f.ext.toUpperCase() + '</span>'
+                + '<span class="media-doc-name">' + (f.name || '') + '</span>'
+                + '<a class="media-doc-dl" href="' + f.url + '" download>Download</a>';
+            mediaWrap.appendChild(card);
         }
     }
 

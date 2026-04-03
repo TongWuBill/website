@@ -18,7 +18,12 @@ if (!$project) {
 function load_sections(array $project): array {
     if (!empty($project['sections'])) {
         $decoded = json_decode($project['sections'], true);
-        if (is_array($decoded) && !empty($decoded)) return $decoded;
+        if (is_array($decoded) && !empty($decoded)) {
+            // Ensure every section has media_url key
+            return array_map(function ($s) {
+                return ['label' => $s['label'] ?? '', 'body' => $s['body'] ?? '', 'media_url' => $s['media_url'] ?? ''];
+            }, $decoded);
+        }
     }
     $legacy = [
         'Concept'      => $project['immersion']        ?? '',
@@ -29,7 +34,9 @@ function load_sections(array $project): array {
     ];
     $out = [];
     foreach ($legacy as $label => $body) {
-        $out[] = ['label' => $label, 'body' => (string) $body];
+        if (trim((string)$body) !== '') {
+            $out[] = ['label' => $label, 'body' => (string) $body, 'media_url' => ''];
+        }
     }
     return $out;
 }
@@ -41,7 +48,7 @@ function section_key(string $label): string {
 function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? '')); }
 
-$allowed_exts = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf'];
+$allowed_exts = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf','txt','doc','docx'];
 
 // ── Handle media upload (section) ─────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_section') {
@@ -55,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
             move_uploaded_file($_FILES['media']['tmp_name'], $dest);
         }
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
 
@@ -66,7 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
         if (in_array($ext, $allowed_exts)) {
             $dir = get_project_media_path($project['slug']);
             if (!is_dir($dir)) mkdir($dir, 0775, true);
-            // Delete any existing thumbnail file first (only one thumbnail)
             foreach (scandir($dir) ?: [] as $f) {
                 if (preg_match('/^thumb[\-_.]/i', $f) && is_file("$dir/$f")) unlink("$dir/$f");
             }
@@ -74,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
             move_uploaded_file($_FILES['media']['tmp_name'], $dest);
         }
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
 
@@ -85,7 +91,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
         if (in_array($ext, $allowed_exts)) {
             $dir = get_project_media_path($project['slug']);
             if (!is_dir($dir)) mkdir($dir, 0775, true);
-            // Delete any existing hero file first (only one hero)
             foreach (scandir($dir) ?: [] as $f) {
                 if (preg_match('/^hero[\-_.]/i', $f) && is_file("$dir/$f")) unlink("$dir/$f");
             }
@@ -93,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
             move_uploaded_file($_FILES['media']['tmp_name'], $dest);
         }
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
 
@@ -108,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
             move_uploaded_file($_FILES['media']['tmp_name'], $dest);
         }
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
 
@@ -119,11 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $path = get_project_media_path($project['slug']) . '/' . $fname;
         if (is_file($path)) unlink($path);
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=media');
+    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
 
-// ── Handle info + sections save ───────────────────────────────
+// ── Handle save ───────────────────────────────────────────────
 $errors        = [];
 $info = [
     'title'        => $project['title']        ?? '',
@@ -161,9 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
     }
 }
 
-// ── Build media buckets for Media tab ────────────────────────
+// ── Build media buckets ───────────────────────────────────────
 $all_media    = list_project_media($project['slug']);
-$media_exts   = ['jpg','jpeg','png','webp','gif','mp4','webm','mov'];
+$media_exts   = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx'];
 $img_exts     = ['jpg','jpeg','png','webp','gif'];
 
 $section_keys  = array_map(fn($s) => section_key($s['label']), $sections_data);
@@ -171,17 +176,12 @@ $section_media = array_fill(0, count($sections_data), []);
 $thumb_files   = [];
 $hero_files    = [];
 $gallery_files = [];
-$unassigned    = [];
 
 foreach ($all_media as $f) {
     if (!in_array($f['ext'], $media_exts)) continue;
-    // Explicit thumbnail bucket
     if (preg_match('/^thumb[\-_.]/i', $f['name'])) { $thumb_files[] = $f; continue; }
-    // Explicit hero bucket
     if (preg_match('/^hero[\-_.]/i', $f['name'])) { $hero_files[] = $f; continue; }
-    // Explicit gallery bucket
     if (preg_match('/^gallery[\-_.]/i', $f['name'])) { $gallery_files[] = $f; continue; }
-    // Section buckets
     $matched = false;
     foreach ($section_keys as $idx => $key) {
         if ($key === '') continue;
@@ -192,11 +192,10 @@ foreach ($all_media as $f) {
             break;
         }
     }
-    // Unmatched: add to gallery (legacy files without prefix)
     if (!$matched) $gallery_files[] = $f;
 }
 
-$active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
+$active_tab = ($_GET['tab'] ?? 'content') === 'info' ? 'info' : 'content';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -238,24 +237,6 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
         .checkbox-row { display: flex; align-items: center; gap: 0.5rem; }
         .checkbox-row label { margin: 0; font-weight: normal; }
 
-        /* section editor rows */
-        #sections-list { display: flex; flex-direction: column; gap: 1rem; }
-        .section-row { border: 1px solid #ddd; background: #fafafa; }
-        .section-row-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem;
-                            background: #f0f0f0; border-bottom: 1px solid #ddd; }
-        .section-row-head input { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #ccc; font-size: 0.85rem;
-                                  font-weight: 600; background: #fff; }
-        .section-row-head input:focus { outline: 2px solid #222; border-color: transparent; }
-        .section-row textarea { width: 100%; padding: 0.6rem 0.75rem; border: none; font-size: 0.9rem;
-                                font-family: inherit; background: #fafafa; }
-        .section-row textarea:focus { outline: 2px solid #222; }
-        .btn-remove { padding: 0.25rem 0.6rem; background: none; border: 1px solid #ccc; color: #999;
-                      font-size: 0.75rem; cursor: pointer; flex-shrink: 0; }
-        .btn-remove:hover { background: #fee; border-color: #f99; color: #c00; }
-        .btn-add { display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem; background: #fff;
-                   border: 1px dashed #aaa; color: #666; font-size: 0.85rem; cursor: pointer; }
-        .btn-add:hover { background: #f0f0f0; }
-
         /* actions */
         .actions { display: flex; gap: 0.75rem; margin-top: 0.5rem; align-items: center; max-width: 800px; }
         button[type="submit"] { padding: 0.5rem 1.4rem; background: #222; color: #fff; border: none;
@@ -266,13 +247,13 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
                             cursor: pointer; font-family: inherit; }
         a.btn:hover, button.btn:hover { background: #222; color: #fff; border-color: #222; }
 
-        /* media buckets */
-        .media-bucket { border: 1px solid #ddd; background: #fff; margin-bottom: 1.25rem; max-width: 800px; }
-        .media-bucket-head { padding: 0.65rem 1rem; background: #f5f5f5; border-bottom: 1px solid #ddd;
-                             display: flex; justify-content: space-between; align-items: center; }
-        .media-bucket-label { font-size: 0.8rem; font-weight: 600; color: #333; }
-        .media-bucket-key { font-size: 0.72rem; color: #aaa; font-family: monospace; }
-        .media-bucket-body { padding: 0.75rem 1rem; }
+        /* ── Content blocks ── */
+        .content-block { background: #fff; border: 1px solid #ddd; max-width: 800px; margin-bottom: 1.25rem; }
+        .content-block-head { padding: 0.65rem 1rem; background: #f5f5f5; border-bottom: 1px solid #ddd;
+                              font-size: 0.8rem; font-weight: 600; color: #333; }
+        .content-block-body { padding: 1rem; }
+
+        /* upload widgets */
         .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.6rem; margin-bottom: 0.75rem; }
         .media-item { position: relative; border: 1px solid #e0e0e0; background: #fafafa; }
         .media-item img, .media-item video { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
@@ -291,227 +272,65 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
         .upload-btn:hover { background: #222; color: #fff; border-color: #222; }
         .media-empty { font-size: 0.8rem; color: #bbb; font-style: italic; margin-bottom: 0.75rem; }
         .media-hint { font-size: 0.72rem; color: #aaa; margin-top: 0.4rem; }
+
+        /* or separator */
+        .or-sep { display: flex; align-items: center; gap: 0.75rem; margin: 0.9rem 0; color: #bbb; font-size: 0.75rem; }
+        .or-sep::before, .or-sep::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+
+        /* section cards */
+        #sections-list { display: flex; flex-direction: column; gap: 1rem; }
+        .section-row { border: 1px solid #ddd; background: #fafafa; }
+        .section-row-head { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem;
+                            background: #f0f0f0; border-bottom: 1px solid #ddd; }
+        .section-row-head input { flex: 1; padding: 0.3rem 0.5rem; border: 1px solid #ccc; font-size: 0.85rem;
+                                  font-weight: 600; background: #fff; }
+        .section-row-head input:focus { outline: 2px solid #222; border-color: transparent; }
+        .sec-body-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+        .sec-col-left { padding: 0.75rem; border-right: 1px solid #e8e8e8; display: flex; flex-direction: column; gap: 0.6rem; }
+        .sec-col-right { padding: 0.75rem; }
+        .sec-col-left textarea { width: 100%; padding: 0.5rem; border: 1px solid #ccc; font-size: 0.875rem;
+                                  font-family: inherit; resize: vertical; }
+        .sec-col-left textarea:focus { outline: 2px solid #222; border-color: transparent; }
+        .sec-col-left input[type="url"] { width: 100%; padding: 0.4rem 0.5rem; border: 1px solid #ccc;
+                                           font-size: 0.82rem; font-family: inherit; }
+        .sec-col-left input[type="url"]:focus { outline: 2px solid #222; border-color: transparent; }
+        .sec-col-right-label { font-size: 0.72rem; font-weight: 600; color: #888; text-transform: uppercase;
+                               letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+        .btn-remove { padding: 0.25rem 0.6rem; background: none; border: 1px solid #ccc; color: #999;
+                      font-size: 0.75rem; cursor: pointer; flex-shrink: 0; }
+        .btn-remove:hover { background: #fee; border-color: #f99; color: #c00; }
+        .btn-add { display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem; background: #fff;
+                   border: 1px dashed #aaa; color: #666; font-size: 0.85rem; cursor: pointer; }
+        .btn-add:hover { background: #f0f0f0; }
     </style>
 </head>
 <body>
+
+<!-- The single save form. All metadata inputs reference it via form="f-save". -->
+<form id="f-save" method="POST">
+    <input type="hidden" name="action" value="save">
+    <input type="hidden" name="sections_json" id="sections-json-input">
+</form>
 
 <div class="header">
     <h1>Edit <span style="color:#aaa;font-weight:normal">#<?= $id ?> — <?= hv($project['title']) ?></span></h1>
     <a href="/admin/dashboard.php?tab=projects" class="btn">&larr; Projects</a>
 </div>
 
-<!-- ── Page tabs ─────────────────────────────────────────────── -->
 <div class="page-tabs">
     <button class="page-tab <?= $active_tab === 'content' ? 'active' : '' ?>"
-            onclick="switchTab('content')">Content & Info</button>
-    <button class="page-tab <?= $active_tab === 'media' ? 'active' : '' ?>"
-            onclick="switchTab('media')">Media
-        <?php $total_files = count($all_media); if ($total_files > 0): ?>
-            <span style="color:#aaa;font-weight:normal">(<?= $total_files ?>)</span>
-        <?php endif; ?>
-    </button>
+            onclick="switchTab('content')">Content</button>
+    <button class="page-tab <?= $active_tab === 'info' ? 'active' : '' ?>"
+            onclick="switchTab('info')">Info</button>
 </div>
 
-<!-- ════════════════ TAB: CONTENT & INFO ════════════════════ -->
+<!-- ════════════════ TAB: CONTENT ════════════════════════════ -->
 <div class="tab-panel <?= $active_tab === 'content' ? 'active' : '' ?>" id="tab-content">
 
-<form method="POST" id="edit-form">
-<input type="hidden" name="action" value="save">
-<input type="hidden" name="sections_json" id="sections-json-input">
-
-<!-- INFO -->
-<div class="group">
-    <div class="group-title">Info</div>
-
-    <div class="field">
-        <label>Title <span style="color:#c00">*</span></label>
-        <input type="text" name="title" value="<?= iv('title', $info) ?>">
-        <?php if (isset($errors['title'])): ?><p class="error"><?= hv($errors['title']) ?></p><?php endif; ?>
-    </div>
-
-    <div class="field">
-        <label>Subtitle</label>
-        <input type="text" name="subtitle" value="<?= iv('subtitle', $info) ?>" placeholder="e.g. An interactive installation for two voices">
-    </div>
-
-    <div class="two-col">
-        <div class="field">
-            <label>Year</label>
-            <input type="text" name="year" value="<?= iv('year', $info) ?>" placeholder="e.g. 2024">
-        </div>
-        <div class="field">
-            <label>Category</label>
-            <input type="text" name="category" value="<?= iv('category', $info) ?>" placeholder="e.g. Installation">
-        </div>
-    </div>
-
-    <div class="field">
-        <label>Skillset</label>
-        <input type="text" name="skillset" value="<?= iv('skillset', $info) ?>" placeholder="e.g. TouchDesigner, Arduino, Python">
-    </div>
-
-    <div class="field">
-        <label>Materials</label>
-        <input type="text" name="material" value="<?= iv('material', $info) ?>" placeholder="e.g. Projection, sensor, custom hardware">
-    </div>
-
-    <div class="two-col">
-        <div class="field">
-            <label>Exhibition</label>
-            <input type="text" name="exhibition" value="<?= iv('exhibition', $info) ?>" placeholder="e.g. Thesis Show 2025">
-        </div>
-        <div class="field">
-            <label>Location</label>
-            <input type="text" name="location" value="<?= iv('location', $info) ?>" placeholder="e.g. Brooklyn, NY">
-        </div>
-    </div>
-
-    <div class="field">
-        <label>Video URL</label>
-        <input type="url" name="video_url" value="<?= iv('video_url', $info) ?>" placeholder="https://vimeo.com/...">
-        <p class="hint">Embed URL — shown as hero on the project page. If set, overrides hero image.</p>
-    </div>
-
-    <div class="field">
-        <div class="checkbox-row">
-            <input type="checkbox" id="is_published" name="is_published" value="1"
-                <?= $info['is_published'] ? 'checked' : '' ?>>
-            <label for="is_published">Published</label>
-        </div>
-    </div>
-</div>
-
-<!-- CONTENT -->
-<div class="group">
-    <div class="group-title">Content sections</div>
-
-    <div id="sections-list">
-        <?php foreach ($sections_data as $i => $sec): ?>
-        <div class="section-row">
-            <div class="section-row-head">
-                <input type="text" class="sec-label" value="<?= hv($sec['label']) ?>" placeholder="Section title">
-                <button type="button" class="btn-remove" onclick="removeSection(this)">Remove</button>
-            </div>
-            <textarea class="sec-body" rows="4" placeholder="Write content here…"><?= hv($sec['body']) ?></textarea>
-        </div>
-        <?php endforeach; ?>
-    </div>
-
-    <button type="button" class="btn-add" onclick="addSection()">+ Add section</button>
-    <p class="hint" style="margin-top:0.6rem">Section titles are also used as media prefixes on the Media tab. Renaming a section here does not rename already-uploaded files.</p>
-</div>
-
-<div class="actions">
-    <button type="submit">Save Changes</button>
-    <a href="/admin/dashboard.php?tab=projects" class="btn">Cancel</a>
-</div>
-
-</form>
-
-</div><!-- #tab-content -->
-
-<!-- ════════════════ TAB: MEDIA ════════════════════════════ -->
-<div class="tab-panel <?= $active_tab === 'media' ? 'active' : '' ?>" id="tab-media">
-
-<!-- Per-section media buckets -->
-<?php foreach ($sections_data as $idx => $sec):
-    $key   = $section_keys[$idx];
-    $files = $section_media[$idx];
-?>
-<div class="media-bucket">
-    <div class="media-bucket-head">
-        <span class="media-bucket-label"><?= hv($sec['label']) ?></span>
-        <?php if ($key): ?>
-        <span class="media-bucket-key">prefix: <?= hv($key) ?>-</span>
-        <?php endif; ?>
-    </div>
-    <div class="media-bucket-body">
-        <?php if (!empty($files)): ?>
-        <div class="media-grid">
-            <?php foreach ($files as $f): ?>
-            <div class="media-item">
-                <?php if (in_array($f['ext'], $img_exts)): ?>
-                    <img src="<?= hv($f['url']) ?>" alt="">
-                <?php elseif (in_array($f['ext'], ['mp4','webm','mov'])): ?>
-                    <video src="<?= hv($f['url']) ?>"></video>
-                <?php else: ?>
-                    <div class="media-item-ext"><?= hv($f['ext']) ?></div>
-                <?php endif; ?>
-                <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete this file?')">
-                    <input type="hidden" name="action" value="delete_file">
-                    <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
-                    <button type="submit" class="media-del">✕</button>
-                </form>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php else: ?>
-        <p class="media-empty">No media yet for this section.</p>
-        <?php endif; ?>
-
-        <?php if ($key): ?>
-        <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="upload_section">
-            <input type="hidden" name="sec_key" value="<?= hv($key) ?>">
-            <div class="upload-row">
-                <input type="file" name="media" accept="image/*,video/*">
-                <button type="submit" class="upload-btn">Upload</button>
-            </div>
-            <p class="media-hint">File will be saved as <code><?= hv($key) ?>-{timestamp}.ext</code> and appear in this section on the public page.</p>
-        </form>
-        <?php endif; ?>
-    </div>
-</div>
-<?php endforeach; ?>
-
-<!-- Thumbnail bucket -->
-<div class="media-bucket">
-    <div class="media-bucket-head">
-        <span class="media-bucket-label">Thumbnail</span>
-        <span class="media-bucket-key">shown on the Work list page</span>
-    </div>
-    <div class="media-bucket-body">
-        <?php if (!empty($thumb_files)): ?>
-        <div class="media-grid">
-            <?php foreach ($thumb_files as $f): ?>
-            <div class="media-item">
-                <?php if (in_array($f['ext'], $img_exts)): ?>
-                    <img src="<?= hv($f['url']) ?>" alt="">
-                <?php else: ?>
-                    <div class="media-item-ext"><?= hv($f['ext']) ?></div>
-                <?php endif; ?>
-                <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete this file?')">
-                    <input type="hidden" name="action" value="delete_file">
-                    <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
-                    <button type="submit" class="media-del">✕</button>
-                </form>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php else: ?>
-        <p class="media-empty">No thumbnail yet. Without one, the Work page falls back to the first image in the folder.</p>
-        <?php endif; ?>
-
-        <form method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="upload_thumbnail">
-            <div class="upload-row">
-                <input type="file" name="media" accept="image/*">
-                <button type="submit" class="upload-btn">Upload thumbnail</button>
-            </div>
-            <p class="media-hint">Uploading a new thumbnail replaces the existing one.</p>
-        </form>
-    </div>
-</div>
-
-<!-- Hero media bucket -->
-<div class="media-bucket">
-    <div class="media-bucket-head">
-        <span class="media-bucket-label">Hero Media</span>
-        <span class="media-bucket-key">shown full-width at top of project page</span>
-    </div>
-    <div class="media-bucket-body">
+<!-- ── Hero ── -->
+<div class="content-block">
+    <div class="content-block-head">Hero</div>
+    <div class="content-block-body">
         <?php if (!empty($hero_files)): ?>
         <div class="media-grid">
             <?php foreach ($hero_files as $f): ?>
@@ -524,7 +343,7 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>
                 <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete this file?')">
+                <form method="POST" onsubmit="return confirm('Delete?')">
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
                     <button type="submit" class="media-del">✕</button>
@@ -533,7 +352,7 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
             <?php endforeach; ?>
         </div>
         <?php else: ?>
-        <p class="media-empty">No hero media yet. Upload one to replace the placeholder.</p>
+        <p class="media-empty">No hero media yet.</p>
         <?php endif; ?>
 
         <form method="POST" enctype="multipart/form-data">
@@ -542,18 +361,133 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
                 <input type="file" name="media" accept="image/*,video/*">
                 <button type="submit" class="upload-btn">Upload hero</button>
             </div>
-            <p class="media-hint">Uploading a new hero replaces the existing one. Ignored if a Video URL is set in Info.</p>
+            <p class="media-hint">Image or video. Uploading replaces the existing hero.</p>
+        </form>
+
+        <div class="or-sep">or embed URL</div>
+
+        <div class="field">
+            <label>Video / Embed URL</label>
+            <input type="url" name="video_url" form="f-save"
+                   value="<?= iv('video_url', $info) ?>"
+                   placeholder="https://vimeo.com/... or https://youtube.com/watch?v=...">
+            <p class="hint">YouTube or Vimeo URL. If set, overrides the uploaded hero file.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ── Thumbnail ── -->
+<div class="content-block">
+    <div class="content-block-head">Thumbnail <span style="font-weight:400;color:#aaa;font-size:0.75rem">— shown on the Work list page</span></div>
+    <div class="content-block-body">
+        <?php if (!empty($thumb_files)): ?>
+        <div class="media-grid">
+            <?php foreach ($thumb_files as $f): ?>
+            <div class="media-item">
+                <?php if (in_array($f['ext'], $img_exts)): ?>
+                    <img src="<?= hv($f['url']) ?>" alt="">
+                <?php else: ?>
+                    <div class="media-item-ext"><?= hv($f['ext']) ?></div>
+                <?php endif; ?>
+                <div class="media-item-name"><?= hv($f['name']) ?></div>
+                <form method="POST" onsubmit="return confirm('Delete?')">
+                    <input type="hidden" name="action" value="delete_file">
+                    <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
+                    <button type="submit" class="media-del">✕</button>
+                </form>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <p class="media-empty">No thumbnail yet. Falls back to first image in the folder.</p>
+        <?php endif; ?>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="upload_thumbnail">
+            <div class="upload-row">
+                <input type="file" name="media" accept="image/*">
+                <button type="submit" class="upload-btn">Upload thumbnail</button>
+            </div>
+            <p class="media-hint">Uploading replaces the existing thumbnail.</p>
         </form>
     </div>
 </div>
 
-<!-- Gallery bucket -->
-<div class="media-bucket">
-    <div class="media-bucket-head">
-        <span class="media-bucket-label">Gallery</span>
-        <span class="media-bucket-key">shown as image grid at the bottom of project page</span>
+<!-- ── Sections ── -->
+<div class="content-block">
+    <div class="content-block-head">Sections</div>
+    <div class="content-block-body">
+        <div id="sections-list">
+            <?php foreach ($sections_data as $i => $sec):
+                $key   = $section_keys[$i];
+                $files = $section_media[$i];
+            ?>
+            <div class="section-row">
+                <div class="section-row-head">
+                    <input type="text" class="sec-label" value="<?= hv($sec['label']) ?>" placeholder="Section title">
+                    <button type="button" class="btn-remove" onclick="removeSection(this)">Remove</button>
+                </div>
+                <div class="sec-body-cols">
+                    <div class="sec-col-left">
+                        <textarea class="sec-body" rows="5" placeholder="Write content here…"><?= hv($sec['body']) ?></textarea>
+                        <input type="url" class="sec-media-url"
+                               value="<?= hv($sec['media_url'] ?? '') ?>"
+                               placeholder="Embed URL (YouTube / Vimeo) — overrides uploaded files">
+                    </div>
+                    <div class="sec-col-right">
+                        <div class="sec-col-right-label">Media</div>
+                        <?php if (!empty($files)): ?>
+                        <div class="media-grid">
+                            <?php foreach ($files as $f): ?>
+                            <div class="media-item">
+                                <?php if (in_array($f['ext'], $img_exts)): ?>
+                                    <img src="<?= hv($f['url']) ?>" alt="">
+                                <?php elseif (in_array($f['ext'], ['mp4','webm','mov'])): ?>
+                                    <video src="<?= hv($f['url']) ?>"></video>
+                                <?php else: ?>
+                                    <div class="media-item-ext"><?= hv($f['ext']) ?></div>
+                                <?php endif; ?>
+                                <div class="media-item-name"><?= hv($f['name']) ?></div>
+                                <form method="POST" onsubmit="return confirm('Delete?')">
+                                    <input type="hidden" name="action" value="delete_file">
+                                    <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
+                                    <button type="submit" class="media-del">✕</button>
+                                </form>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php else: ?>
+                        <p class="media-empty">No files yet.</p>
+                        <?php endif; ?>
+
+                        <?php if ($key): ?>
+                        <form method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="action" value="upload_section">
+                            <input type="hidden" name="sec_key" value="<?= hv($key) ?>">
+                            <div class="upload-row">
+                                <input type="file" name="media" accept="image/*,video/*">
+                                <button type="submit" class="upload-btn">Upload</button>
+                            </div>
+                            <p class="media-hint">Saved as <code><?= hv($key) ?>-{ts}.ext</code></p>
+                        </form>
+                        <?php else: ?>
+                        <p class="media-hint">Save the project first to enable uploads for this section.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+
+        <button type="button" class="btn-add" onclick="addSection()">+ Add section</button>
+        <p class="hint" style="margin-top:0.6rem">Section title is used as the file prefix on upload. Renaming a section does not rename already-uploaded files.</p>
     </div>
-    <div class="media-bucket-body">
+</div>
+
+<!-- ── Gallery ── -->
+<div class="content-block">
+    <div class="content-block-head">Gallery <span style="font-weight:400;color:#aaa;font-size:0.75rem">— peek carousel at the bottom of the project page</span></div>
+    <div class="content-block-body">
         <?php if (!empty($gallery_files)): ?>
         <div class="media-grid">
             <?php foreach ($gallery_files as $f): ?>
@@ -566,7 +500,7 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>
                 <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete this file?')">
+                <form method="POST" onsubmit="return confirm('Delete?')">
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
                     <button type="submit" class="media-del">✕</button>
@@ -588,7 +522,83 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'media' ? 'media' : 'content';
     </div>
 </div>
 
-</div><!-- #tab-media -->
+<div class="actions">
+    <button type="submit" form="f-save">Save Changes</button>
+    <a href="/admin/dashboard.php?tab=projects" class="btn">Cancel</a>
+</div>
+
+</div><!-- #tab-content -->
+
+<!-- ════════════════ TAB: INFO ═══════════════════════════════ -->
+<div class="tab-panel <?= $active_tab === 'info' ? 'active' : '' ?>" id="tab-info">
+
+<div class="group">
+    <div class="group-title">Info</div>
+
+    <div class="field">
+        <label>Title <span style="color:#c00">*</span></label>
+        <input type="text" name="title" form="f-save" value="<?= iv('title', $info) ?>">
+        <?php if (isset($errors['title'])): ?><p class="error"><?= hv($errors['title']) ?></p><?php endif; ?>
+    </div>
+
+    <div class="field">
+        <label>Subtitle</label>
+        <input type="text" name="subtitle" form="f-save" value="<?= iv('subtitle', $info) ?>"
+               placeholder="e.g. An interactive installation for two voices">
+    </div>
+
+    <div class="two-col">
+        <div class="field">
+            <label>Year</label>
+            <input type="text" name="year" form="f-save" value="<?= iv('year', $info) ?>" placeholder="e.g. 2024">
+        </div>
+        <div class="field">
+            <label>Category</label>
+            <input type="text" name="category" form="f-save" value="<?= iv('category', $info) ?>"
+                   placeholder="e.g. Installation">
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Skillset</label>
+        <input type="text" name="skillset" form="f-save" value="<?= iv('skillset', $info) ?>"
+               placeholder="e.g. TouchDesigner, Arduino, Python">
+    </div>
+
+    <div class="field">
+        <label>Materials</label>
+        <input type="text" name="material" form="f-save" value="<?= iv('material', $info) ?>"
+               placeholder="e.g. Projection, sensor, custom hardware">
+    </div>
+
+    <div class="two-col">
+        <div class="field">
+            <label>Exhibition</label>
+            <input type="text" name="exhibition" form="f-save" value="<?= iv('exhibition', $info) ?>"
+                   placeholder="e.g. Thesis Show 2025">
+        </div>
+        <div class="field">
+            <label>Location</label>
+            <input type="text" name="location" form="f-save" value="<?= iv('location', $info) ?>"
+                   placeholder="e.g. Brooklyn, NY">
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="checkbox-row">
+            <input type="checkbox" id="is_published" name="is_published" value="1"
+                   form="f-save" <?= $info['is_published'] ? 'checked' : '' ?>>
+            <label for="is_published">Published</label>
+        </div>
+    </div>
+</div>
+
+<div class="actions">
+    <button type="submit" form="f-save">Save Changes</button>
+    <a href="/admin/dashboard.php?tab=projects" class="btn">Cancel</a>
+</div>
+
+</div><!-- #tab-info -->
 
 <script>
 function addSection() {
@@ -600,7 +610,16 @@ function addSection() {
             <input type="text" class="sec-label" placeholder="Section title">
             <button type="button" class="btn-remove" onclick="removeSection(this)">Remove</button>
         </div>
-        <textarea class="sec-body" rows="4" placeholder="Write content here…"></textarea>`;
+        <div class="sec-body-cols">
+            <div class="sec-col-left">
+                <textarea class="sec-body" rows="5" placeholder="Write content here…"></textarea>
+                <input type="url" class="sec-media-url" placeholder="Embed URL (YouTube / Vimeo) — overrides uploaded files">
+            </div>
+            <div class="sec-col-right">
+                <div class="sec-col-right-label">Media</div>
+                <p class="media-hint">Save the project first to enable uploads for this section.</p>
+            </div>
+        </div>`;
     list.appendChild(row);
     row.querySelector('.sec-label').focus();
 }
@@ -610,11 +629,12 @@ function removeSection(btn) {
     btn.closest('.section-row').remove();
 }
 
-document.getElementById('edit-form').addEventListener('submit', function () {
+document.getElementById('f-save').addEventListener('submit', function () {
     const rows = document.querySelectorAll('.section-row');
     const sections = [...rows].map(row => ({
-        label: row.querySelector('.sec-label').value.trim(),
-        body:  row.querySelector('.sec-body').value.trim(),
+        label:     row.querySelector('.sec-label').value.trim(),
+        body:      row.querySelector('.sec-body').value.trim(),
+        media_url: row.querySelector('.sec-media-url') ? row.querySelector('.sec-media-url').value.trim() : '',
     })).filter(s => s.label !== '');
     document.getElementById('sections-json-input').value = JSON.stringify(sections);
 });
@@ -624,7 +644,6 @@ function switchTab(name) {
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     event.currentTarget.classList.add('active');
-    // update URL without reload
     const url = new URL(window.location);
     url.searchParams.set('tab', name);
     history.replaceState(null, '', url);

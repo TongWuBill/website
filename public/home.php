@@ -27,15 +27,16 @@ render_header('Tong Wu');
   </div>
 </section>
 
-<!-- ── Ideology ── -->
+<!-- ── Ideology ── (temporarily hidden)
 <section class="home-ideology">
   <p class="home-ideology-text">
     hahah. I make work that lives between body and system —<br>
     where sensation becomes data, and data becomes sensation.
   </p>
 </section>
+-->
 
-<!-- ── Selected Works ── -->
+<!-- ── Selected Works ── (temporarily hidden)
 <section class="home-selected">
 
   <div class="home-selected-header">
@@ -64,6 +65,7 @@ render_header('Tong Wu');
   </div>
 
 </section>
+-->
 
 <script>
 (function () {

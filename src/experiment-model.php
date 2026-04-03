@@ -29,7 +29,7 @@ function experiments_ensure_table(): void {
 function get_all_experiments(): array {
     experiments_ensure_table();
     $db = get_db();
-    return $db->query("SELECT * FROM experiments ORDER BY sort_order DESC, id DESC")
+    return $db->query("SELECT * FROM experiments ORDER BY category COLLATE NOCASE ASC, date DESC")
               ->fetchAll(PDO::FETCH_ASSOC);
 }
 
