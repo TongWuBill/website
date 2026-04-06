@@ -98,6 +98,10 @@ $gallery = array_values(array_filter($unassigned, fn($f) => in_array($f['ext'], 
 
 // Helper: convert YouTube/Vimeo watch URLs to embed URLs
 function to_embed_url(string $url): string {
+    // Already an embed URL — pass through as-is (preserves ?autoplay=1&muted=1 etc.)
+    if (str_contains($url, 'player.vimeo.com') || str_contains($url, 'youtube.com/embed')) {
+        return $url;
+    }
     if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $m)) {
         return 'https://www.youtube.com/embed/' . $m[1];
     }

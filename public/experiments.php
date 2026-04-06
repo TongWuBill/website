@@ -186,8 +186,10 @@ function renderModal(expIdx, mediaIdx) {
             const wrap = document.createElement('div');
             wrap.className = 'media-pdf-wrap media-pdf-wrap--modal';
             const iframe = document.createElement('iframe');
-            iframe.src = f.url; iframe.title = 'Video'; iframe.allow = 'autoplay; fullscreen';
+            iframe.allow = 'autoplay; fullscreen; picture-in-picture';
             iframe.setAttribute('allowfullscreen', '');
+            iframe.title = 'Video';
+            iframe.src = f.url;  // set src last so permissions are applied first
             wrap.appendChild(iframe);
             mediaWrap.appendChild(wrap);
         } else if (['mp4','webm','mov'].includes(f.ext)) {
