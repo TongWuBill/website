@@ -6,13 +6,14 @@ $projects = get_all_projects();
 
 // Pre-fetch the first image for each project card
 $img_exts = ['jpg','jpeg','png','webp','gif'];
-$thumbs   = [];
+$vid_exts = ['mp4','mov','webm'];
+$thumbs   = []; // ['url' => ..., 'ext' => ...]
 foreach ($projects as $p) {
     $files = list_project_media($p['slug']);
-    // Prefer explicit thumbnail file
+    // Prefer explicit thumbnail file (image or video)
     foreach ($files as $f) {
-        if (preg_match('/^thumb[\-_.]/i', $f['name']) && in_array($f['ext'], $img_exts)) {
-            $thumbs[$p['slug']] = $f['url'];
+        if (preg_match('/^thumb[\-_.]/i', $f['name']) && (in_array($f['ext'], $img_exts) || in_array($f['ext'], $vid_exts))) {
+            $thumbs[$p['slug']] = ['url' => $f['url'], 'ext' => $f['ext']];
             break;
         }
     }
@@ -20,7 +21,7 @@ foreach ($projects as $p) {
     if (!isset($thumbs[$p['slug']])) {
         foreach ($files as $f) {
             if (in_array($f['ext'], $img_exts)) {
-                $thumbs[$p['slug']] = $f['url'];
+                $thumbs[$p['slug']] = ['url' => $f['url'], 'ext' => $f['ext']];
                 break;
             }
         }
@@ -48,7 +49,11 @@ render_header('Work');
     <a href="/p/<?= htmlspecialchars($p['slug']) ?>" class="work-card<?= $featured ?>">
       <div class="work-card-image">
         <?php if ($thumb): ?>
-          <img src="<?= htmlspecialchars($thumb) ?>" alt="<?= htmlspecialchars($p['title']) ?>">
+          <?php if (in_array($thumb['ext'], $vid_exts)): ?>
+            <video src="<?= htmlspecialchars($thumb['url']) ?>" muted playsinline loop preload="metadata" class="work-card-thumb-vid"></video>
+          <?php else: ?>
+            <img src="<?= htmlspecialchars($thumb['url']) ?>" alt="<?= htmlspecialchars($p['title']) ?>">
+          <?php endif; ?>
         <?php endif; ?>
         <div class="work-card-overlay"></div>
       </div>

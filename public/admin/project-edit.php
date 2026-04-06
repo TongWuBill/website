@@ -433,6 +433,8 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
             <div class="media-item">
                 <?php if (in_array($f['ext'], $img_exts)): ?>
                     <img src="<?= hv($f['url']) ?>" alt="">
+                <?php elseif (in_array($f['ext'], ['mp4','mov','webm'])): ?>
+                    <video src="<?= hv($f['url']) ?>" muted playsinline preload="metadata" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block"></video>
                 <?php else: ?>
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>

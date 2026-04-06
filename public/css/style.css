@@ -439,7 +439,8 @@ nav {
   background: #141414;
 }
 
-.work-card-image img {
+.work-card-image img,
+.work-card-image .work-card-thumb-vid {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -450,7 +451,8 @@ nav {
   transition: opacity 0.5s, transform 0.6s;
 }
 
-.work-card:hover .work-card-image img { opacity: 1; transform: scale(1.05); }
+.work-card:hover .work-card-image img,
+.work-card:hover .work-card-image .work-card-thumb-vid { opacity: 1; transform: scale(1.05); }
 
 .work-card-overlay {
   position: absolute;
@@ -1695,6 +1697,7 @@ body.instant .page-loader { opacity: 0; transition: none; }
 .pd-gallery-asset:not(.is-loaded),
 .exp-card-image img:not(.is-loaded),
 .work-card-image img:not(.is-loaded),
+.work-card-image .work-card-thumb-vid:not(.is-loaded),
 .home-work-image img:not(.is-loaded),
 .exp-modal-img:not(.is-loaded),
 .exp-modal-vid:not(.is-loaded),

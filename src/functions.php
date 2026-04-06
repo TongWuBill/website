@@ -60,6 +60,7 @@ function render_header($title = '') {
                     '.pd-gallery-asset',
                     '.exp-card-image img',
                     '.work-card-image img',
+                    '.work-card-thumb-vid',
                     '.home-work-image img',
                     '.hero-slide',
                     '.about-photo-img',
