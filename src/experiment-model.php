@@ -13,15 +13,19 @@ function experiments_ensure_table(): void {
             category    TEXT,
             date        TEXT,
             description TEXT,
+            video_url   TEXT,
             sort_order  INTEGER DEFAULT 0,
             created_at  TEXT,
             updated_at  TEXT
         )
     ");
-    // Add description column if missing (for existing databases)
+    // Add columns if missing (for existing databases)
     $cols = array_column($db->query("PRAGMA table_info(experiments)")->fetchAll(PDO::FETCH_ASSOC), 'name');
     if (!in_array('description', $cols)) {
         $db->exec("ALTER TABLE experiments ADD COLUMN description TEXT");
+    }
+    if (!in_array('video_url', $cols)) {
+        $db->exec("ALTER TABLE experiments ADD COLUMN video_url TEXT");
     }
 }
 
@@ -58,14 +62,15 @@ function create_experiment(array $data): int {
     $next_sort = (int) $db->query("SELECT COALESCE(MAX(sort_order),0) FROM experiments")->fetchColumn() + 1;
 
     $stmt = $db->prepare("
-        INSERT INTO experiments (title, category, date, description, sort_order, created_at, updated_at)
-        VALUES (:title, :category, :date, :description, :sort_order, :created_at, :updated_at)
+        INSERT INTO experiments (title, category, date, description, video_url, sort_order, created_at, updated_at)
+        VALUES (:title, :category, :date, :description, :video_url, :sort_order, :created_at, :updated_at)
     ");
     $stmt->execute([
         ':title'       => $data['title'],
         ':category'    => $data['category']    ?? null,
         ':date'        => $data['date']         ?? null,
         ':description' => $data['description']  ?? null,
+        ':video_url'   => $data['video_url']    ?? null,
         ':sort_order'  => $next_sort,
         ':created_at'  => $now,
         ':updated_at'  => $now,
@@ -84,6 +89,7 @@ function update_experiment(int $id, array $data): void {
             category    = :category,
             date        = :date,
             description = :description,
+            video_url   = :video_url,
             updated_at  = :updated_at
         WHERE id = :id
     ");
@@ -92,6 +98,7 @@ function update_experiment(int $id, array $data): void {
         ':category'    => $data['category']    ?? null,
         ':date'        => $data['date']         ?? null,
         ':description' => $data['description']  ?? null,
+        ':video_url'   => $data['video_url']    ?? null,
         ':updated_at'  => date('Y-m-d H:i:s'),
         ':id'          => $id,
     ]);

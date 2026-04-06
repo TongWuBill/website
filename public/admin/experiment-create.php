@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../src/experiment-model.php';
 require_login();
 
 $errors = [];
-$fields = ['title' => '', 'category' => '', 'date' => '', 'description' => ''];
+$fields = ['title' => '', 'category' => '', 'date' => '', 'description' => '', 'video_url' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($fields as $key => $_) {
@@ -81,6 +81,12 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     <div class="field">
         <label>Description</label>
         <textarea name="description" rows="3" placeholder="Short description shown in the modal…" style="width:100%;padding:0.45rem 0.6rem;border:1px solid #ccc;font-size:0.9rem;font-family:inherit;resize:vertical"><?= hv($fields['description']) ?></textarea>
+    </div>
+
+    <div class="field">
+        <label>Video / Embed URL</label>
+        <input type="text" name="video_url" value="<?= iv('video_url', $fields) ?>" placeholder="https://www.youtube.com/watch?v=… or Vimeo URL">
+        <p class="hint">YouTube or Vimeo — shown as the first media item in the modal.</p>
     </div>
 </div>
 

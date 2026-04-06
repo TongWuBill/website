@@ -4,6 +4,22 @@ require_once __DIR__ . '/../src/experiment-model.php';
 
 $grouped = get_experiments_grouped();
 
+function exp_to_embed_url(string $url): string {
+    // Already an embed URL — pass through as-is (preserves ?autoplay=1 etc.)
+    if (str_contains($url, 'player.vimeo.com') || str_contains($url, 'youtube.com/embed')) {
+        return $url;
+    }
+    // YouTube watch URL
+    if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $m)) {
+        return 'https://www.youtube.com/embed/' . $m[1] . '?rel=0';
+    }
+    // Vimeo regular URL
+    if (preg_match('/vimeo\.com\/(\d+)/', $url, $m)) {
+        return 'https://player.vimeo.com/video/' . $m[1];
+    }
+    return $url;
+}
+
 // Build a flat ordered list of all experiments with their media,
 // so JS can navigate prev/next across categories.
 $all_experiments_js = [];
@@ -11,11 +27,17 @@ foreach ($grouped as $cat => $items) {
     foreach ($items as $item) {
         $media = list_experiment_media((int)$item['id']);
         $media_list = [];
+
+        // Prepend video_url embed as first media item if set
+        $vid_url = trim($item['video_url'] ?? '');
+        if ($vid_url !== '') {
+            $media_list[] = ['ext' => 'embed', 'url' => exp_to_embed_url($vid_url)];
+        }
+
         foreach ($media as $f) {
             $ext = $f['ext'];
             if (in_array($ext, ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','doc','docx'])) {
-                $entry = ['url' => $f['url'], 'ext' => $ext, 'name' => $f['name']];
-                $media_list[] = $entry;
+                $media_list[] = ['url' => $f['url'], 'ext' => $ext, 'name' => $f['name']];
             } elseif ($ext === 'txt') {
                 $content = (isset($f['path']) && is_file($f['path']))
                     ? file_get_contents($f['path'])
@@ -160,7 +182,15 @@ function renderModal(expIdx, mediaIdx) {
         mediaWrap.innerHTML = '<div class="exp-modal-no-media"><span>No media</span></div>';
     } else {
         const f = media[mediaIdx];
-        if (['mp4','webm','mov'].includes(f.ext)) {
+        if (f.ext === 'embed') {
+            const wrap = document.createElement('div');
+            wrap.className = 'media-pdf-wrap media-pdf-wrap--modal';
+            const iframe = document.createElement('iframe');
+            iframe.src = f.url; iframe.title = 'Video'; iframe.allow = 'autoplay; fullscreen';
+            iframe.setAttribute('allowfullscreen', '');
+            wrap.appendChild(iframe);
+            mediaWrap.appendChild(wrap);
+        } else if (['mp4','webm','mov'].includes(f.ext)) {
             const v = document.createElement('video');
             v.src = f.url; v.controls = true; v.autoplay = false;
             v.className = 'exp-modal-vid';

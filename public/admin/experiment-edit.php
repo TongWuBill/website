@@ -19,6 +19,7 @@ $fields = [
     'category'    => $exp['category']    ?? '',
     'date'        => $exp['date']        ?? '',
     'description' => $exp['description'] ?? '',
+    'video_url'   => $exp['video_url']   ?? '',
 ];
 
 // ── Handle media upload ───────────────────────────────────────
@@ -179,6 +180,12 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     <div class="field">
         <label>Description</label>
         <textarea name="description" rows="3" placeholder="Short description shown in the modal…" style="width:100%;padding:0.45rem 0.6rem;border:1px solid #ccc;font-size:0.9rem;font-family:inherit;resize:vertical"><?= hv($fields['description']) ?></textarea>
+    </div>
+
+    <div class="field">
+        <label>Video / Embed URL</label>
+        <input type="text" name="video_url" value="<?= iv('video_url', $fields) ?>" placeholder="https://www.youtube.com/watch?v=… or Vimeo URL">
+        <p class="hint">YouTube or Vimeo — shown as the first media item in the modal. Leave blank if using uploaded files only.</p>
     </div>
 </div>
 
