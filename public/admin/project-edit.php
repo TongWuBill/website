@@ -50,70 +50,106 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
 
 $allowed_exts = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf','txt','doc','docx'];
 
+// ── Upload error helper ───────────────────────────────────────
+function upload_error_msg(int $code): string {
+    return match($code) {
+        UPLOAD_ERR_INI_SIZE   => 'File exceeds upload_max_filesize in php.ini',
+        UPLOAD_ERR_FORM_SIZE  => 'File exceeds MAX_FILE_SIZE in form',
+        UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded',
+        UPLOAD_ERR_NO_FILE    => 'No file was uploaded',
+        UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+        UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+        UPLOAD_ERR_EXTENSION  => 'Upload blocked by PHP extension',
+        default               => 'Unknown upload error (code ' . $code . ')',
+    };
+}
+
+function do_upload(int $id, string $slug, string $dest_name, bool $replace_prefix = false): string {
+    global $allowed_exts;
+
+    // Check if PHP even received the file data (post_max_size exceeded silently empties $_FILES)
+    if (empty($_FILES['media']['name'])) {
+        // Check if a file was sent at all via Content-Length
+        $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($cl > 0) {
+            return 'post_max_size exceeded — PHP silently dropped the upload. Current post_max_size: ' . ini_get('post_max_size');
+        }
+        return 'No file received';
+    }
+
+    $err = $_FILES['media']['error'];
+    if ($err !== UPLOAD_ERR_OK) return upload_error_msg($err);
+
+    $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_exts)) return 'File type .' . $ext . ' not allowed';
+
+    $dir = get_project_media_path($slug);
+    if (!is_dir($dir)) {
+        if (!mkdir($dir, 0775, true)) {
+            $parent = dirname($dir);
+            return 'Cannot create upload folder. Directory: ' . $dir
+                . ' | Parent writable: ' . (is_writable($parent) ? 'yes' : 'NO — run: chmod 775 ' . $parent . ' && chown www-data:www-data ' . $parent);
+        }
+    }
+    if (!is_writable($dir)) {
+        return 'Upload folder not writable: ' . $dir . ' — run: chmod 775 ' . $dir . ' && chown www-data:www-data ' . $dir;
+    }
+
+    // Delete existing files with same prefix if requested
+    if ($replace_prefix) {
+        $prefix = explode('-', $dest_name)[0];
+        foreach (scandir($dir) ?: [] as $f) {
+            if (stripos($f, $prefix . '-') === 0 && is_file("$dir/$f")) unlink("$dir/$f");
+        }
+    }
+
+    $dest = $dir . '/' . $dest_name . '-' . time() . '.' . $ext;
+    if (!move_uploaded_file($_FILES['media']['tmp_name'], $dest)) {
+        return 'move_uploaded_file failed — tmp: ' . $_FILES['media']['tmp_name'] . ' → dest: ' . $dest;
+    }
+
+    return '';
+}
+
 // ── Handle media upload (section) ─────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_section') {
     $sec_key = preg_replace('/[^a-z0-9]/', '', strtolower($_POST['sec_key'] ?? ''));
-    if ($sec_key !== '' && !empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed_exts)) {
-            $dir = get_project_media_path($project['slug']);
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            $dest = $dir . '/' . $sec_key . '-' . time() . '.' . $ext;
-            move_uploaded_file($_FILES['media']['tmp_name'], $dest);
-        }
+    $uerr = '';
+    if ($sec_key === '') {
+        $uerr = 'Section key is empty — save the project first so the section has a label';
+    } else {
+        $uerr = do_upload($id, $project['slug'], $sec_key);
     }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
+    $loc = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
+    header('Location: ' . $loc);
     exit;
 }
 
 // ── Handle media upload (thumbnail) ──────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_thumbnail') {
-    if (!empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed_exts)) {
-            $dir = get_project_media_path($project['slug']);
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            foreach (scandir($dir) ?: [] as $f) {
-                if (preg_match('/^thumb[\-_.]/i', $f) && is_file("$dir/$f")) unlink("$dir/$f");
-            }
-            $dest = $dir . '/thumb-' . time() . '.' . $ext;
-            move_uploaded_file($_FILES['media']['tmp_name'], $dest);
-        }
-    }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
+    $uerr = do_upload($id, $project['slug'], 'thumb', true);
+    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
+    header('Location: ' . $loc);
     exit;
 }
 
 // ── Handle media upload (hero) ───────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_hero') {
-    if (!empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed_exts)) {
-            $dir = get_project_media_path($project['slug']);
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            foreach (scandir($dir) ?: [] as $f) {
-                if (preg_match('/^hero[\-_.]/i', $f) && is_file("$dir/$f")) unlink("$dir/$f");
-            }
-            $dest = $dir . '/hero-' . time() . '.' . $ext;
-            move_uploaded_file($_FILES['media']['tmp_name'], $dest);
-        }
-    }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
+    $uerr = do_upload($id, $project['slug'], 'hero', true);
+    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
+    header('Location: ' . $loc);
     exit;
 }
 
 // ── Handle media upload (gallery) ────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_gallery') {
-    if (!empty($_FILES['media']['name']) && $_FILES['media']['error'] === UPLOAD_ERR_OK) {
-        $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, $allowed_exts)) {
-            $dir = get_project_media_path($project['slug']);
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            $dest = $dir . '/gallery-' . time() . '.' . $ext;
-            move_uploaded_file($_FILES['media']['tmp_name'], $dest);
-        }
-    }
-    header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
+    $uerr = do_upload($id, $project['slug'], 'gallery');
+    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
+    header('Location: ' . $loc);
     exit;
 }
 
@@ -265,6 +301,10 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         .media-del { position: absolute; top: 3px; right: 3px; background: rgba(180,0,0,.85); color: #fff;
                      border: none; font-size: 0.65rem; padding: 0.15rem 0.35rem; cursor: pointer; line-height: 1; }
         .media-del:hover { background: #c00; }
+        .upload-error { background: #fee; border: 1px solid #f99; color: #c00; padding: 0.6rem 1rem;
+                        font-size: 0.82rem; max-width: 800px; margin-bottom: 1rem; word-break: break-all; }
+        .upload-error strong { display: block; margin-bottom: 0.25rem; font-size: 0.75rem;
+                               text-transform: uppercase; letter-spacing: .08em; }
         .upload-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
         .upload-row input[type="file"] { flex: 1; min-width: 0; }
         .upload-btn { padding: 0.4rem 0.9rem; background: #fff; border: 1px solid #999; font-size: 0.82rem;
@@ -316,6 +356,13 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <h1>Edit <span style="color:#aaa;font-weight:normal">#<?= $id ?> — <?= hv($project['title']) ?></span></h1>
     <a href="/admin/dashboard.php?tab=projects" class="btn">&larr; Projects</a>
 </div>
+
+<?php if (!empty($_GET['upload_error'])): ?>
+<div class="upload-error">
+    <strong>Upload failed</strong>
+    <?= htmlspecialchars($_GET['upload_error']) ?>
+</div>
+<?php endif; ?>
 
 <div class="page-tabs">
     <button class="page-tab <?= $active_tab === 'info' ? 'active' : '' ?>"

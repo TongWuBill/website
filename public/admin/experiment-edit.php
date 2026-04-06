@@ -26,27 +26,54 @@ $upload_error = '';
 $upload_ok    = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
-    if (!empty($_FILES['media']['name'])) {
-        $allowed = ['jpg','jpeg','png','webp','gif','mp4','mov','pdf'];
+    if (empty($_FILES['media']['name'])) {
+        $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        $upload_error = $cl > 0
+            ? 'post_max_size exceeded — PHP silently dropped the upload. Current post_max_size: ' . ini_get('post_max_size')
+            : 'No file received';
+    } else {
+        $allowed = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf','txt','doc','docx'];
         $file    = $_FILES['media'];
         $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
         if (!in_array($ext, $allowed)) {
-            $upload_error = 'File type not allowed.';
+            $upload_error = 'File type .' . $ext . ' not allowed';
         } elseif ($file['error'] !== UPLOAD_ERR_OK) {
-            $upload_error = 'Upload error: ' . $file['error'];
+            $codes = [
+                UPLOAD_ERR_INI_SIZE   => 'File exceeds upload_max_filesize (' . ini_get('upload_max_filesize') . ')',
+                UPLOAD_ERR_FORM_SIZE  => 'File exceeds MAX_FILE_SIZE in form',
+                UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE    => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION  => 'Upload blocked by PHP extension',
+            ];
+            $upload_error = $codes[$file['error']] ?? 'Unknown upload error (code ' . $file['error'] . ')';
         } else {
             $dir = get_experiment_media_path((string) $id);
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            $dest = $dir . '/' . time() . '_' . preg_replace('/[^a-z0-9._-]/i', '_', $file['name']);
-            if (move_uploaded_file($file['tmp_name'], $dest)) {
-                $upload_ok = true;
-            } else {
-                $upload_error = 'Could not save file.';
+            if (!is_dir($dir)) {
+                if (!mkdir($dir, 0775, true)) {
+                    $parent = dirname($dir);
+                    $upload_error = 'Cannot create upload folder: ' . $dir
+                        . ' — parent writable: ' . (is_writable($parent) ? 'yes' : 'NO — chmod 775 ' . $parent);
+                }
+            }
+            if ($upload_error === '' && !is_writable($dir)) {
+                $upload_error = 'Upload folder not writable: ' . $dir . ' — run: chmod 775 ' . $dir;
+            }
+            if ($upload_error === '') {
+                $dest = $dir . '/' . time() . '_' . preg_replace('/[^a-z0-9._-]/i', '_', $file['name']);
+                if (move_uploaded_file($file['tmp_name'], $dest)) {
+                    $upload_ok = true;
+                } else {
+                    $upload_error = 'move_uploaded_file failed — dest: ' . $dest;
+                }
             }
         }
     }
-    header('Location: /admin/experiment-edit.php?id=' . $id . ($upload_ok ? '&uploaded=1' : ''));
+    header('Location: /admin/experiment-edit.php?id=' . $id
+        . ($upload_ok ? '&uploaded=1' : '')
+        . ($upload_error ? '&upload_error=' . urlencode($upload_error) : ''));
     exit;
 }
 
@@ -168,8 +195,9 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     <?php if (isset($_GET['uploaded'])): ?>
         <p class="upload-ok">File uploaded successfully.</p>
     <?php endif; ?>
-    <?php if ($upload_error): ?>
-        <p class="upload-err"><?= hv($upload_error) ?></p>
+    <?php $display_err = $upload_error ?: ($_GET['upload_error'] ?? ''); ?>
+    <?php if ($display_err): ?>
+        <p class="upload-err"><?= hv($display_err) ?></p>
     <?php endif; ?>
 
     <form method="POST" enctype="multipart/form-data">
