@@ -195,7 +195,7 @@ foreach ($all_media as $f) {
     if (!$matched) $gallery_files[] = $f;
 }
 
-$active_tab = ($_GET['tab'] ?? 'content') === 'info' ? 'info' : 'content';
+$active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -318,10 +318,10 @@ $active_tab = ($_GET['tab'] ?? 'content') === 'info' ? 'info' : 'content';
 </div>
 
 <div class="page-tabs">
-    <button class="page-tab <?= $active_tab === 'content' ? 'active' : '' ?>"
-            onclick="switchTab('content')">Content</button>
     <button class="page-tab <?= $active_tab === 'info' ? 'active' : '' ?>"
             onclick="switchTab('info')">Info</button>
+    <button class="page-tab <?= $active_tab === 'content' ? 'active' : '' ?>"
+            onclick="switchTab('content')">Content</button>
 </div>
 
 <!-- ════════════════ TAB: CONTENT ════════════════════════════ -->
