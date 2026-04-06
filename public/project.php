@@ -105,8 +105,9 @@ function to_embed_url(string $url): string {
     if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $url, $m)) {
         return 'https://www.youtube.com/embed/' . $m[1];
     }
-    if (preg_match('/vimeo\.com\/(?:.*\/)?(\d+)/', $url, $m)) {
-        return 'https://player.vimeo.com/video/' . $m[1];
+    if (preg_match('/vimeo\.com\/(?:.*\/)?(\d+)([?&][^#]*)?/', $url, $m)) {
+        $query = isset($m[2]) ? str_replace('?', '?', $m[2]) : '';
+        return 'https://player.vimeo.com/video/' . $m[1] . $query;
     }
     return $url;
 }

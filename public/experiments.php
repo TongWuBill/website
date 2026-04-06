@@ -13,9 +13,10 @@ function exp_to_embed_url(string $url): string {
     if (preg_match('/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/', $url, $m)) {
         return 'https://www.youtube.com/embed/' . $m[1] . '?rel=0';
     }
-    // Vimeo regular URL
-    if (preg_match('/vimeo\.com\/(\d+)/', $url, $m)) {
-        return 'https://player.vimeo.com/video/' . $m[1];
+    // Vimeo regular URL — preserve query string (?autoplay=1&muted=1 etc.)
+    if (preg_match('/vimeo\.com\/(\d+)([?&][^#]*)?/', $url, $m)) {
+        $query = $m[2] ?? '';
+        return 'https://player.vimeo.com/video/' . $m[1] . $query;
     }
     return $url;
 }

@@ -452,7 +452,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <form method="POST" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_thumbnail">
             <div class="upload-row">
-                <input type="file" name="media" accept="image/*">
+                <input type="file" name="media" accept="image/*,video/*">
                 <button type="submit" class="upload-btn">Upload thumbnail</button>
             </div>
             <p class="media-hint">Uploading replaces the existing thumbnail.</p>
