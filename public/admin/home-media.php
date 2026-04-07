@@ -176,8 +176,8 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
         btn.disabled = true;
         status.textContent = 'Uploading…'; status.style.color = '#888';
 
-        const fd = new FormData(form);
-        fd.delete('media[]');
+        const fd = new FormData();
+        new FormData(form).forEach((val, key) => { if (key !== 'media[]') fd.append(key, val); });
         for (const f of fileInput.files) fd.append('media[]', f);
 
         try {
@@ -202,6 +202,13 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
                         item.appendChild(v);
                     }
                     const n = document.createElement('div'); n.className = 'media-item-name'; n.textContent = f.name; item.appendChild(n);
+                    const delForm = document.createElement('form');
+                    delForm.method = 'POST';
+                    delForm.addEventListener('submit', function(e) { if (!confirm('Delete this file?')) e.preventDefault(); });
+                    delForm.innerHTML = '<input type="hidden" name="action" value="delete">'
+                        + '<input type="hidden" name="filename" value="' + f.name.replace(/"/g,'&quot;') + '">'
+                        + '<button type="submit" class="media-del">✕</button>';
+                    item.appendChild(delForm);
                     grid.appendChild(item);
                 });
             }

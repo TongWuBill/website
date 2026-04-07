@@ -757,6 +757,14 @@ function switchTab(name) {
         const name = document.createElement('div');
         name.className = 'media-item-name'; name.textContent = f.name;
         item.appendChild(name);
+        // Delete button
+        const delForm = document.createElement('form');
+        delForm.method = 'POST';
+        delForm.addEventListener('submit', function(e) { if (!confirm('Delete?')) e.preventDefault(); });
+        delForm.innerHTML = '<input type="hidden" name="action" value="delete_file">'
+            + '<input type="hidden" name="filename" value="' + f.name.replace(/"/g,'&quot;') + '">'
+            + '<button type="submit" class="media-del">✕</button>';
+        item.appendChild(delForm);
         return item;
     }
 
@@ -789,9 +797,9 @@ function switchTab(name) {
             status.textContent = 'Uploading…';
             status.style.color = '#888';
 
-            const fd = new FormData(form);
-            // Append all selected files under media[]
-            fd.delete('media[]');
+            // Build FormData manually to ensure all files are included
+            const fd = new FormData();
+            new FormData(form).forEach((val, key) => { if (key !== 'media[]') fd.append(key, val); });
             for (const file of fileInput.files) fd.append('media[]', file);
 
             try {
