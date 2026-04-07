@@ -98,7 +98,7 @@ function upload_one(string $slug, string $dest_name, string $tmp, string $orig_n
         }
     }
 
-    $dest = $dir . '/' . $dest_name . '-' . time() . '.' . $ext;
+    $dest = $dir . '/' . $dest_name . '-' . round(microtime(true) * 1000) . '.' . $ext;
     if (!move_uploaded_file($tmp, $dest)) throw new RuntimeException('move_uploaded_file failed');
 
     $rel = '/uploads/projects/' . $slug . '/' . basename($dest);
@@ -186,6 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
         $path = get_project_media_path($project['slug']) . '/' . $fname;
         if (is_file($path)) unlink($path);
     }
+    if (is_ajax()) json_response(['ok' => true]);
     header('Location: /admin/project-edit.php?id=' . $id . '&tab=content');
     exit;
 }
@@ -418,7 +419,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>
                 <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete?')">
+                <form method="POST">
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
                     <button type="submit" class="media-del">✕</button>
@@ -468,7 +469,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>
                 <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete?')">
+                <form method="POST">
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
                     <button type="submit" class="media-del">✕</button>
@@ -580,7 +581,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                     <div class="media-item-ext"><?= hv($f['ext']) ?></div>
                 <?php endif; ?>
                 <div class="media-item-name"><?= hv($f['name']) ?></div>
-                <form method="POST" onsubmit="return confirm('Delete?')">
+                <form method="POST">
                     <input type="hidden" name="action" value="delete_file">
                     <input type="hidden" name="filename" value="<?= hv($f['name']) ?>">
                     <button type="submit" class="media-del">✕</button>
@@ -732,6 +733,27 @@ function switchTab(name) {
 </script>
 
 <script>
+// ── AJAX Delete ──────────────────────────────────────────────
+document.addEventListener('submit', async function (e) {
+    const form = e.target;
+    if (form.querySelector('input[name="action"][value="delete_file"]') === null) return;
+    e.preventDefault();
+    if (!confirm('Delete?')) return;
+    const fd = new FormData(form);
+    try {
+        await fetch(window.location.href, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: fd
+        });
+        // Remove the parent .media-item from the DOM
+        const item = form.closest('.media-item');
+        if (item) item.remove();
+    } catch (err) {
+        alert('Delete failed');
+    }
+});
+
 // ── AJAX Upload ───────────────────────────────────────────────
 (function () {
     const IMG_EXTS = ['jpg','jpeg','png','webp','gif'];
@@ -757,10 +779,9 @@ function switchTab(name) {
         const name = document.createElement('div');
         name.className = 'media-item-name'; name.textContent = f.name;
         item.appendChild(name);
-        // Delete button
+        // Delete button (handled by AJAX delete listener above)
         const delForm = document.createElement('form');
         delForm.method = 'POST';
-        delForm.addEventListener('submit', function(e) { if (!confirm('Delete?')) e.preventDefault(); });
         delForm.innerHTML = '<input type="hidden" name="action" value="delete_file">'
             + '<input type="hidden" name="filename" value="' + f.name.replace(/"/g,'&quot;') + '">'
             + '<button type="submit" class="media-del">✕</button>';
