@@ -43,7 +43,7 @@ function _lang_strings(): array {
             'nav.about'       => 'About',
 
             // Footer
-            'footer.copy' => '&copy; 2026 Tong Wu. All rights reserved.',
+            'footer.copy' => '© 2026 Tong Wu. All rights reserved.',
 
             // Home page
             'home.ideology' => "Creative technologist working with AI,\nreal-time systems, and interactive media.",
@@ -112,7 +112,7 @@ function _lang_strings(): array {
             'nav.about'       => '关于',
 
             // Footer
-            'footer.copy' => '&copy; 2026 吴彤. 保留所有权利。',
+            'footer.copy' => '© 2026 吴彤. 保留所有权利。',
 
             // Home page
             'home.ideology' => "创意技术研究者，专注于 AI、实时系统\n与交互媒体领域的创作实践。",
