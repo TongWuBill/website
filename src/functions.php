@@ -77,14 +77,26 @@ function render_header($title = '') {
                         el.addEventListener('load',  function () { reveal(this); }, { once: true });
                         el.addEventListener('error', function () { reveal(this); }, { once: true });
                     } else if (el.tagName === 'VIDEO') {
-                        if (el.readyState >= 2) { reveal(el); return; }
-                        el.addEventListener('loadeddata', function () { reveal(this); }, { once: true });
-                        el.addEventListener('error',      function () { reveal(this); }, { once: true });
+                        // readyState >= 1 (HAVE_METADATA) is enough for thumbnail cards
+                        if (el.readyState >= 1) { reveal(el); return; }
+                        el.addEventListener('loadedmetadata', function () { reveal(this); }, { once: true });
+                        el.addEventListener('loadeddata',     function () { reveal(this); }, { once: true });
+                        el.addEventListener('error',          function () { reveal(this); }, { once: true });
+                        // Fallback: reveal after 800ms regardless
+                        setTimeout(function () { reveal(el); }, 800);
                     }
                 }
 
                 document.addEventListener('DOMContentLoaded', function () {
                     document.querySelectorAll(SEL).forEach(watch);
+
+                    // Work card video thumbnails: play on hover, pause on leave
+                    document.querySelectorAll('.work-card-thumb-vid').forEach(function (v) {
+                        var card = v.closest('.work-card');
+                        if (!card) return;
+                        card.addEventListener('mouseenter', function () { v.play(); });
+                        card.addEventListener('mouseleave', function () { v.pause(); v.currentTime = 0; });
+                    });
 
                     // Watch DOM for dynamically inserted media (e.g. experiment modal)
                     new MutationObserver(function (mutations) {
