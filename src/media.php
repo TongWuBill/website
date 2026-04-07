@@ -86,11 +86,25 @@ function list_project_media(string $slug): array {
 }
 
 function list_home_media(): array {
-    return _list_media_files(get_home_media_path());
+    return array_values(array_filter(
+        _list_media_files(get_home_media_path()),
+        fn($f) => $f['ext'] !== 'json'
+    ));
+}
+
+function get_home_text(): array {
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $path = get_home_media_path() . '/content.json';
+    $cache = file_exists($path) ? (json_decode(file_get_contents($path), true) ?: []) : [];
+    return $cache;
 }
 
 function list_about_media(): array {
-    return _list_media_files(get_about_media_path());
+    return array_values(array_filter(
+        _list_media_files(get_about_media_path()),
+        fn($f) => $f['ext'] !== 'json'
+    ));
 }
 
 // Returns all files in a folder as ['name' => ..., 'url' => ..., 'size' => ..., 'ext' => ...]
