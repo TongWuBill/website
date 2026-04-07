@@ -15,15 +15,20 @@ function t(string $key): string {
     return $cache[$lang][$key] ?? $cache['en'][$key] ?? $key;
 }
 
+// ── DB content helper — use CN value if lang=cn and CN is not empty ──────────
+
+function tdb(?string $cn, ?string $en): string {
+    if (get_lang() === 'cn' && $cn !== null && $cn !== '') return $cn;
+    return $en ?? '';
+}
+
 // ── Lang toggle HTML (for nav) ────────────────────────────────────────────────
 
 function lang_toggle_html(): string {
     $lang    = get_lang();
     $label   = $lang === 'en' ? '中文' : 'EN';
     $next    = $lang === 'en' ? 'cn'   : 'en';
-    return '<button class="lang-toggle" onclick="document.cookie=\'lang=' . $next
-         . ';path=/;max-age=31536000\';location.reload()" aria-label="Switch language">'
-         . $label . '</button>';
+    return "<button class=\"lang-toggle\" onclick=\"document.cookie='lang={$next};path=/;max-age=31536000';location.reload()\" aria-label=\"Switch language\">{$label}</button>";
 }
 
 // ── Strings ───────────────────────────────────────────────────────────────────

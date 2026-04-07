@@ -205,6 +205,8 @@ $info = [
     'location'     => $project['location']     ?? '',
     'video_url'    => $project['video_url']    ?? '',
     'is_published' => $project['is_published'] ?? 1,
+    'title_cn'     => $project['title_cn']     ?? '',
+    'subtitle_cn'  => $project['subtitle_cn']  ?? '',
 ];
 $sections_data = load_sections($project);
 
@@ -222,8 +224,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
     $sections_data = is_array($decoded) ? $decoded : load_sections($project);
 
     if (empty($errors)) {
-        $data             = $info;
-        $data['sections'] = json_encode($sections_data, JSON_UNESCAPED_UNICODE);
+        $data               = $info;
+        $data['sections']   = json_encode($sections_data, JSON_UNESCAPED_UNICODE);
+        // sections_cn: rebuild from posted CN bodies (labels stay same as EN)
+        $cn_bodies = $_POST['section_cn_body'] ?? [];
+        if (!empty($sections_data) && !empty(array_filter($cn_bodies, fn($v) => trim($v) !== ''))) {
+            $cn_secs = [];
+            foreach ($sections_data as $i => $sec) {
+                $cn_secs[] = ['label' => $sec['label'], 'body' => trim($cn_bodies[$i] ?? '')];
+            }
+            $data['sections_cn'] = json_encode($cn_secs, JSON_UNESCAPED_UNICODE);
+        } else {
+            $data['sections_cn'] = $project['sections_cn'] ?? null;
+        }
         update_project($id, $data);
         header('Location: /admin/dashboard.php?tab=projects');
         exit;
@@ -499,9 +512,16 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <div class="content-block-head">Sections</div>
     <div class="content-block-body">
         <div id="sections-list">
-            <?php foreach ($sections_data as $i => $sec):
-                $key   = $section_keys[$i];
-                $files = $section_media[$i];
+            <?php
+            $cn_sections_data = [];
+            if (!empty($project['sections_cn'])) {
+                $decoded_cn = json_decode($project['sections_cn'], true);
+                if (is_array($decoded_cn)) $cn_sections_data = $decoded_cn;
+            }
+            foreach ($sections_data as $i => $sec):
+                $key    = $section_keys[$i];
+                $files  = $section_media[$i];
+                $cn_body = $cn_sections_data[$i]['body'] ?? '';
             ?>
             <div class="section-row">
                 <div class="section-row-head">
@@ -511,6 +531,10 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                 <div class="sec-body-cols">
                     <div class="sec-col-left">
                         <textarea class="sec-body" rows="5" placeholder="Write content here…"><?= hv($sec['body']) ?></textarea>
+                        <textarea class="sec-body-cn" name="section_cn_body[<?= $i ?>]" rows="3"
+                                  placeholder="中文内容（留空则显示英文）"
+                                  form="f-save"
+                                  style="margin-top:6px;font-size:0.8rem;color:#666;border-color:#e0e0e0"><?= hv($cn_body) ?></textarea>
                         <input type="url" class="sec-media-url"
                                value="<?= hv($sec['media_url'] ?? '') ?>"
                                placeholder="Embed URL (YouTube / Vimeo) — overrides uploaded files">
@@ -625,9 +649,19 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     </div>
 
     <div class="field">
+        <label>Title 中文</label>
+        <input type="text" name="title_cn" form="f-save" value="<?= iv('title_cn', $info) ?>" placeholder="中文标题（留空则显示英文）">
+    </div>
+
+    <div class="field">
         <label>Subtitle</label>
         <input type="text" name="subtitle" form="f-save" value="<?= iv('subtitle', $info) ?>"
                placeholder="e.g. An interactive installation for two voices">
+    </div>
+
+    <div class="field">
+        <label>Subtitle 中文</label>
+        <input type="text" name="subtitle_cn" form="f-save" value="<?= iv('subtitle_cn', $info) ?>" placeholder="中文副标题（留空则显示英文）">
     </div>
 
     <div class="two-col">

@@ -11,13 +11,26 @@ function slugify(string $title): string {
     return trim($s, '-') ?: 'project';
 }
 
+function projects_ensure_cn_columns(): void {
+    static $done = false;
+    if ($done) return;
+    $db   = get_db();
+    $cols = array_column($db->query("PRAGMA table_info(projects)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+    if (!in_array('title_cn', $cols))    $db->exec("ALTER TABLE projects ADD COLUMN title_cn TEXT");
+    if (!in_array('subtitle_cn', $cols)) $db->exec("ALTER TABLE projects ADD COLUMN subtitle_cn TEXT");
+    if (!in_array('sections_cn', $cols)) $db->exec("ALTER TABLE projects ADD COLUMN sections_cn TEXT");
+    $done = true;
+}
+
 function get_all_projects_admin(): array {
+    projects_ensure_cn_columns();
     $db = get_db();
     $stmt = $db->query("SELECT * FROM projects ORDER BY sort_order DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function get_project_by_id(int $id): array|false {
+    projects_ensure_cn_columns();
     $db = get_db();
     $stmt = $db->prepare("SELECT * FROM projects WHERE id = ?");
     $stmt->execute([$id]);
@@ -25,6 +38,7 @@ function get_project_by_id(int $id): array|false {
 }
 
 function create_project(array $data): int {
+    projects_ensure_cn_columns();
     $db  = get_db();
     $now = date('Y-m-d H:i:s');
 
@@ -33,25 +47,28 @@ function create_project(array $data): int {
     $stmt = $db->prepare("
         INSERT INTO projects (
             title, slug, subtitle, year, category, skillset, material, exhibition, location,
-            sections, video_url, is_published, created_at, updated_at, sort_order
+            sections, video_url, title_cn, subtitle_cn, sections_cn, is_published, created_at, updated_at, sort_order
         ) VALUES (
             :title, :slug, :subtitle, :year, :category, :skillset, :material, :exhibition, :location,
-            :sections, :video_url, :is_published, :created_at, :updated_at, :sort_order
+            :sections, :video_url, :title_cn, :subtitle_cn, :sections_cn, :is_published, :created_at, :updated_at, :sort_order
         )
     ");
 
     $stmt->execute([
         ':title'        => $data['title'],
         ':slug'         => $data['slug'],
-        ':subtitle'     => $data['subtitle']   ?? null,
-        ':year'         => $data['year']       ?? null,
-        ':category'     => $data['category']   ?? null,
-        ':skillset'     => $data['skillset']   ?? null,
-        ':material'     => $data['material']   ?? null,
-        ':exhibition'   => $data['exhibition'] ?? null,
-        ':location'     => $data['location']   ?? null,
-        ':sections'     => $data['sections']   ?? null,
-        ':video_url'    => $data['video_url']  ?? null,
+        ':subtitle'     => $data['subtitle']    ?? null,
+        ':year'         => $data['year']        ?? null,
+        ':category'     => $data['category']    ?? null,
+        ':skillset'     => $data['skillset']    ?? null,
+        ':material'     => $data['material']    ?? null,
+        ':exhibition'   => $data['exhibition']  ?? null,
+        ':location'     => $data['location']    ?? null,
+        ':sections'     => $data['sections']    ?? null,
+        ':video_url'    => $data['video_url']   ?? null,
+        ':title_cn'     => $data['title_cn']    ?? null,
+        ':subtitle_cn'  => $data['subtitle_cn'] ?? null,
+        ':sections_cn'  => $data['sections_cn'] ?? null,
         ':is_published' => $data['is_published'] ?? 1,
         ':created_at'   => $now,
         ':updated_at'   => $now,
@@ -64,6 +81,7 @@ function create_project(array $data): int {
 }
 
 function update_project(int $id, array $data): void {
+    projects_ensure_cn_columns();
     $db = get_db();
 
     $before = get_project_by_id($id);
@@ -81,6 +99,9 @@ function update_project(int $id, array $data): void {
             location     = :location,
             sections     = :sections,
             video_url    = :video_url,
+            title_cn     = :title_cn,
+            subtitle_cn  = :subtitle_cn,
+            sections_cn  = :sections_cn,
             is_published = :is_published,
             updated_at   = :updated_at,
             edit_count   = COALESCE(edit_count, 0) + 1
@@ -90,15 +111,18 @@ function update_project(int $id, array $data): void {
     $stmt->execute([
         ':title'        => $data['title'],
         ':slug'         => $data['slug'],
-        ':subtitle'     => $data['subtitle']   ?? null,
-        ':year'         => $data['year']       ?? null,
-        ':category'     => $data['category']   ?? null,
-        ':skillset'     => $data['skillset']   ?? null,
-        ':material'     => $data['material']   ?? null,
-        ':exhibition'   => $data['exhibition'] ?? null,
-        ':location'     => $data['location']   ?? null,
-        ':sections'     => $data['sections']   ?? null,
-        ':video_url'    => $data['video_url']  ?? null,
+        ':subtitle'     => $data['subtitle']    ?? null,
+        ':year'         => $data['year']        ?? null,
+        ':category'     => $data['category']    ?? null,
+        ':skillset'     => $data['skillset']    ?? null,
+        ':material'     => $data['material']    ?? null,
+        ':exhibition'   => $data['exhibition']  ?? null,
+        ':location'     => $data['location']    ?? null,
+        ':sections'     => $data['sections']    ?? null,
+        ':video_url'    => $data['video_url']   ?? null,
+        ':title_cn'     => $data['title_cn']    ?? null,
+        ':subtitle_cn'  => $data['subtitle_cn'] ?? null,
+        ':sections_cn'  => $data['sections_cn'] ?? null,
         ':is_published' => $data['is_published'] ?? 1,
         ':updated_at'   => date('Y-m-d H:i:s'),
         ':id'           => $id,

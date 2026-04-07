@@ -15,11 +15,13 @@ if (!$exp) {
 
 $errors = [];
 $fields = [
-    'title'       => $exp['title']       ?? '',
-    'category'    => $exp['category']    ?? '',
-    'date'        => $exp['date']        ?? '',
-    'description' => $exp['description'] ?? '',
-    'video_url'   => $exp['video_url']   ?? '',
+    'title'          => $exp['title']          ?? '',
+    'category'       => $exp['category']       ?? '',
+    'date'           => $exp['date']           ?? '',
+    'description'    => $exp['description']    ?? '',
+    'video_url'      => $exp['video_url']      ?? '',
+    'title_cn'       => $exp['title_cn']       ?? '',
+    'description_cn' => $exp['description_cn'] ?? '',
 ];
 
 // ── Handle media upload ───────────────────────────────────────
@@ -174,6 +176,11 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     </div>
 
     <div class="field">
+        <label>Title 中文</label>
+        <input type="text" name="title_cn" value="<?= iv('title_cn', $fields) ?>" placeholder="中文标题（留空则显示英文）">
+    </div>
+
+    <div class="field">
         <label>Category</label>
         <input type="text" name="category" value="<?= iv('category', $fields) ?>" placeholder="e.g. Sound Studies">
     </div>
@@ -187,6 +194,11 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     <div class="field">
         <label>Description</label>
         <textarea name="description" rows="3" placeholder="Short description shown in the modal…" style="width:100%;padding:0.45rem 0.6rem;border:1px solid #ccc;font-size:0.9rem;font-family:inherit;resize:vertical"><?= hv($fields['description']) ?></textarea>
+    </div>
+
+    <div class="field">
+        <label>Description 中文</label>
+        <textarea name="description_cn" rows="3" placeholder="中文描述（留空则显示英文）" style="width:100%;padding:0.45rem 0.6rem;border:1px solid #ccc;font-size:0.9rem;font-family:inherit;resize:vertical"><?= hv($fields['description_cn']) ?></textarea>
     </div>
 
     <div class="field">

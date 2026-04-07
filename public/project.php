@@ -17,9 +17,12 @@ $media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','d
 $img_exts   = ['jpg','jpeg','png','webp','gif'];
 $vid_exts   = ['mp4','webm','mov'];
 
-// ── Load content sections ─────────────────────────────────────
-if (!empty($project['sections'])) {
-    $decoded_sections = json_decode($project['sections'], true);
+// ── Load content sections (prefer CN if lang=cn and sections_cn exists) ───────
+$sections_raw = (get_lang() === 'cn' && !empty($project['sections_cn']))
+    ? $project['sections_cn']
+    : ($project['sections'] ?? '');
+if (!empty($sections_raw)) {
+    $decoded_sections = json_decode($sections_raw, true);
     $content_sections = is_array($decoded_sections) ? $decoded_sections : [];
 } else {
     $content_sections = [];
@@ -139,7 +142,7 @@ function render_any_file(array $f, string $cls = ''): void {
     }
 }
 
-render_header($project['title']);
+render_header(tdb($project['title_cn'] ?? null, $project['title']));
 ?>
 
 <!-- ── Hero media ─────────────────────────────────────────── -->
@@ -165,9 +168,9 @@ render_header($project['title']);
 <!-- ── Project header ────────────────────────────────────── -->
 <div class="pd-header">
   <div class="pd-title-row">
-    <h1 class="pd-title"><?= htmlspecialchars($project['title']) ?></h1>
+    <h1 class="pd-title"><?= htmlspecialchars(tdb($project['title_cn'] ?? null, $project['title'])) ?></h1>
     <?php if (!empty($project['subtitle'])): ?>
-    <span class="pd-subtitle"><?= htmlspecialchars($project['subtitle']) ?></span>
+    <span class="pd-subtitle"><?= htmlspecialchars(tdb($project['subtitle_cn'] ?? null, $project['subtitle'])) ?></span>
     <?php endif; ?>
   </div>
   <div class="pd-meta">

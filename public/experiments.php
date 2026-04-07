@@ -48,10 +48,10 @@ foreach ($grouped as $cat => $items) {
         }
         $all_experiments_js[] = [
             'id'          => (int)$item['id'],
-            'title'       => $item['title'],
+            'title'       => tdb($item['title_cn'] ?? null, $item['title']),
             'category'    => $item['category'] ?? '',
             'date'        => $item['date']      ?? '',
-            'description' => $item['description'] ?? '',
+            'description' => tdb($item['description_cn'] ?? null, $item['description'] ?? ''),
             'media'       => $media_list,
         ];
     }
@@ -97,7 +97,7 @@ render_header(t('experiments.page_title'));
             <?php endif; ?>
           </div>
           <div class="exp-card-meta">
-            <span class="exp-card-title"><?= htmlspecialchars($item['title']) ?></span>
+            <span class="exp-card-title"><?= htmlspecialchars(tdb($item['title_cn'] ?? null, $item['title'])) ?></span>
             <?php if (!empty($item['date'])): ?>
               <span class="exp-card-date"><?= htmlspecialchars($item['date']) ?></span>
             <?php endif; ?>

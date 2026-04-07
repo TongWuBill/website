@@ -27,6 +27,12 @@ function experiments_ensure_table(): void {
     if (!in_array('video_url', $cols)) {
         $db->exec("ALTER TABLE experiments ADD COLUMN video_url TEXT");
     }
+    if (!in_array('title_cn', $cols)) {
+        $db->exec("ALTER TABLE experiments ADD COLUMN title_cn TEXT");
+    }
+    if (!in_array('description_cn', $cols)) {
+        $db->exec("ALTER TABLE experiments ADD COLUMN description_cn TEXT");
+    }
 }
 
 // ── Queries ───────────────────────────────────────────────────
@@ -68,15 +74,17 @@ function create_experiment(array $data): int {
     $next_sort = (int) $db->query("SELECT COALESCE(MAX(sort_order),0) FROM experiments")->fetchColumn() + 1;
 
     $stmt = $db->prepare("
-        INSERT INTO experiments (title, category, date, description, video_url, sort_order, created_at, updated_at)
-        VALUES (:title, :category, :date, :description, :video_url, :sort_order, :created_at, :updated_at)
+        INSERT INTO experiments (title, category, date, description, video_url, title_cn, description_cn, sort_order, created_at, updated_at)
+        VALUES (:title, :category, :date, :description, :video_url, :title_cn, :description_cn, :sort_order, :created_at, :updated_at)
     ");
     $stmt->execute([
-        ':title'       => $data['title'],
-        ':category'    => $data['category']    ?? null,
-        ':date'        => $data['date']         ?? null,
-        ':description' => $data['description']  ?? null,
-        ':video_url'   => $data['video_url']    ?? null,
+        ':title'          => $data['title'],
+        ':category'       => $data['category']       ?? null,
+        ':date'           => $data['date']            ?? null,
+        ':description'    => $data['description']     ?? null,
+        ':video_url'      => $data['video_url']       ?? null,
+        ':title_cn'       => $data['title_cn']        ?? null,
+        ':description_cn' => $data['description_cn']  ?? null,
         ':sort_order'  => $next_sort,
         ':created_at'  => $now,
         ':updated_at'  => $now,
@@ -91,20 +99,24 @@ function update_experiment(int $id, array $data): void {
     $db   = get_db();
     $stmt = $db->prepare("
         UPDATE experiments SET
-            title       = :title,
-            category    = :category,
-            date        = :date,
-            description = :description,
-            video_url   = :video_url,
-            updated_at  = :updated_at
+            title          = :title,
+            category       = :category,
+            date           = :date,
+            description    = :description,
+            video_url      = :video_url,
+            title_cn       = :title_cn,
+            description_cn = :description_cn,
+            updated_at     = :updated_at
         WHERE id = :id
     ");
     $stmt->execute([
-        ':title'       => $data['title'],
-        ':category'    => $data['category']    ?? null,
-        ':date'        => $data['date']         ?? null,
-        ':description' => $data['description']  ?? null,
-        ':video_url'   => $data['video_url']    ?? null,
+        ':title'          => $data['title'],
+        ':category'       => $data['category']       ?? null,
+        ':date'           => $data['date']            ?? null,
+        ':description'    => $data['description']     ?? null,
+        ':video_url'      => $data['video_url']       ?? null,
+        ':title_cn'       => $data['title_cn']        ?? null,
+        ':description_cn' => $data['description_cn']  ?? null,
         ':updated_at'  => date('Y-m-d H:i:s'),
         ':id'          => $id,
     ]);

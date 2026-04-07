@@ -59,7 +59,7 @@ render_header(t('work.page_title'));
       </div>
       <div class="work-card-meta">
         <span class="work-card-index"><?= str_pad($i + 1, 2, '0', STR_PAD_LEFT) ?></span>
-        <span class="work-card-title"><?= htmlspecialchars($p['title']) ?></span>
+        <span class="work-card-title"><?= htmlspecialchars(tdb($p['title_cn'] ?? null, $p['title'])) ?></span>
       </div>
     </a>
     <?php endforeach; ?>
