@@ -66,6 +66,8 @@ function log_msg(string $msg): void { global $log; $log[] = $msg; }
 
 if (!$dry_run) {
     $db = get_db();
+    projects_ensure_cn_columns();
+    experiments_ensure_table();
 
     // ── Projects ─────────────────────────────────────────────────────────────
     $projects = $db->query("SELECT id, title, subtitle, sections, title_cn, subtitle_cn, sections_cn FROM projects")->fetchAll(PDO::FETCH_ASSOC);
@@ -127,9 +129,10 @@ if (!$dry_run) {
     }
 } else {
     // Dry run — just count what will be translated
-    $db       = get_db();
-    $projects = $db->query("SELECT id, title FROM projects")->fetchAll(PDO::FETCH_ASSOC);
+    $db = get_db();
+    projects_ensure_cn_columns();
     experiments_ensure_table();
+    $projects = $db->query("SELECT id, title FROM projects")->fetchAll(PDO::FETCH_ASSOC);
     $exps     = $db->query("SELECT id, title FROM experiments")->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
