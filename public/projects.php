@@ -28,14 +28,14 @@ foreach ($projects as $p) {
     }
 }
 
-render_header('Work');
+render_header(t('work.page_title'));
 ?>
 
 <div class="work-wrap">
 
   <div class="work-page-header">
     <div class="work-page-header-top">
-      <h1>Work</h1>
+      <h1><?= t('work.heading') ?></h1>
       <span class="work-count"><?= count($projects) ?> projects</span>
     </div>
     <p class="work-page-subtitle">Explorations in interactive systems, media, and perception.</p>

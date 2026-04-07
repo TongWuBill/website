@@ -173,37 +173,37 @@ render_header($project['title']);
   <div class="pd-meta">
     <?php if (!empty($project['year'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Year</span>
+      <span class="pd-meta-label"><?= t('project.year') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['year']) ?></span>
     </div>
     <?php endif; ?>
     <?php if (!empty($project['category'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Category</span>
+      <span class="pd-meta-label"><?= t('project.category') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['category']) ?></span>
     </div>
     <?php endif; ?>
     <?php if (!empty($project['material'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Materials</span>
+      <span class="pd-meta-label"><?= t('project.materials') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['material']) ?></span>
     </div>
     <?php endif; ?>
     <?php if (!empty($project['skillset'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Skillset</span>
+      <span class="pd-meta-label"><?= t('project.skillset') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['skillset']) ?></span>
     </div>
     <?php endif; ?>
     <?php if (!empty($project['exhibition'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Exhibition</span>
+      <span class="pd-meta-label"><?= t('project.exhibition') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['exhibition']) ?></span>
     </div>
     <?php endif; ?>
     <?php if (!empty($project['location'])): ?>
     <div class="pd-meta-item">
-      <span class="pd-meta-label">Location</span>
+      <span class="pd-meta-label"><?= t('project.location') ?></span>
       <span class="pd-meta-value"><?= htmlspecialchars($project['location']) ?></span>
     </div>
     <?php endif; ?>

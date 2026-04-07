@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lang.php';
 
 function get_all_projects() {
     $db = get_db();
@@ -128,11 +129,12 @@ function render_header($title = '') {
         </script>
         <nav>
             <div class="nav-links">
-                <a href="/">Home</a>
-                <a href="/work">Work</a>
-                <a href="/experiments">Experiments</a>
-                <a href="/about">About</a>
+                <a href="/"><?= t('nav.home') ?></a>
+                <a href="/work"><?= t('nav.work') ?></a>
+                <a href="/experiments"><?= t('nav.experiments') ?></a>
+                <a href="/about"><?= t('nav.about') ?></a>
             </div>
+            <?= lang_toggle_html() ?>
         </nav>
 
         <!-- Loading indicator — outside .page-content so it isn't masked by
@@ -149,7 +151,7 @@ function render_header($title = '') {
 function render_footer() {
     ?>
         <footer class="site-footer">
-            <p class="site-footer-copy">&copy; 2026 Tong Wu. All rights reserved.</p>
+            <p class="site-footer-copy"><?= t('footer.copy') ?></p>
         </footer>
         </div><!-- /.page-content -->
     </body>

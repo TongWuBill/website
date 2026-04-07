@@ -57,13 +57,13 @@ foreach ($grouped as $cat => $items) {
     }
 }
 
-render_header('Experiments');
+render_header(t('experiments.page_title'));
 ?>
 
 <div class="exp-wrap">
 
   <div class="exp-page-header">
-    <h1>Experiments</h1>
+    <h1><?= t('experiments.heading') ?></h1>
     <p>Smaller works, sketches, and ongoing research.</p>
   </div>
 
