@@ -80,6 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
         'name_cn'    => trim($_POST['name_cn']    ?? '吴彤'),
         'tagline_en' => trim($_POST['tagline_en'] ?? ''),
         'tagline_cn' => trim($_POST['tagline_cn'] ?? ''),
+        'footer_en'  => trim($_POST['footer_en']  ?? ''),
+        'footer_cn'  => trim($_POST['footer_cn']  ?? ''),
     ];
     file_put_contents($dir . '/content.json', json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     header('Location: /admin/home-media.php?saved=1');
@@ -101,7 +103,7 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Media — Admin</title>
+    <title>Home — Admin</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background: #f4f4f4; color: #222; padding: 2rem; }
@@ -131,7 +133,7 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 <body>
 
 <div class="header">
-    <h1>Home Hero Media</h1>
+    <h1>Home</h1>
     <a href="/admin/dashboard.php" class="btn">&larr; Dashboard</a>
 </div>
 
@@ -199,7 +201,7 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
                    style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit">
         </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
         <div>
             <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Tagline (EN)</label>
             <textarea name="tagline_en" rows="3"
@@ -212,6 +214,20 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
             <textarea name="tagline_cn" rows="3"
                       style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit;resize:vertical"
                       placeholder="交互艺术家&#10;创意技术研究者"><?= hv($home_text['tagline_cn'] ?? "交互艺术家\n创意技术研究者") ?></textarea>
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Footer (EN)</label>
+            <input type="text" name="footer_en" value="<?= hv($home_text['footer_en'] ?? '') ?>"
+                   style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit"
+                   placeholder="© 2025 Tong Wu">
+        </div>
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Footer (中文)</label>
+            <input type="text" name="footer_cn" value="<?= hv($home_text['footer_cn'] ?? '') ?>"
+                   style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit"
+                   placeholder="© 2025 吴彤">
         </div>
     </div>
 </div>

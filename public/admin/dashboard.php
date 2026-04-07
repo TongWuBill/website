@@ -207,7 +207,7 @@ $all_experiments = ($tab === 'experiments') ? get_all_experiments() : [];
         <a href="/admin/dashboard.php?tab=system"      class="tab-btn <?= $tab==='system'      ? 'active':'' ?>">System</a>
         <a href="/admin/dashboard.php?tab=projects"    class="tab-btn <?= $tab==='projects'    ? 'active':'' ?>">Projects</a>
         <a href="/admin/dashboard.php?tab=experiments" class="tab-btn <?= $tab==='experiments' ? 'active':'' ?>">Experiments</a>
-        <a href="/admin/home-media.php"                class="tab-btn">Home Media</a>
+        <a href="/admin/home-media.php"                class="tab-btn">Home</a>
         <a href="/admin/about.php"                     class="tab-btn">About</a>
         <a href="/admin/translate.php"                 class="tab-btn">Translate</a>
         <div class="tab-divider"></div>

@@ -149,9 +149,14 @@ function render_header($title = '') {
 }
 
 function render_footer() {
+    $home_text   = get_home_text();
+    $lang        = get_lang();
+    $footer_copy = ($lang === 'cn' && !empty($home_text['footer_cn']))
+        ? $home_text['footer_cn']
+        : (!empty($home_text['footer_en']) ? $home_text['footer_en'] : t('footer.copy'));
     ?>
         <footer class="site-footer">
-            <p class="site-footer-copy"><?= t('footer.copy') ?></p>
+            <p class="site-footer-copy"><?= htmlspecialchars($footer_copy) ?></p>
         </footer>
         </div><!-- /.page-content -->
     </body>
