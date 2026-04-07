@@ -60,6 +60,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'uploa
     exit;
 }
 
+// ── Upload favicon ───────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_favicon') {
+    $dir = get_home_media_path();
+    if (!is_dir($dir)) mkdir($dir, 0775, true);
+    $raw = $_FILES['favicon'] ?? [];
+    $ext = strtolower(pathinfo($raw['name'] ?? '', PATHINFO_EXTENSION));
+    if (($raw['error'] ?? 1) !== UPLOAD_ERR_OK) {
+        header('Location: /admin/home-media.php?fav_error=Upload+failed'); exit;
+    }
+    if (!in_array($ext, ['png','jpg','jpeg','ico','svg','webp'])) {
+        header('Location: /admin/home-media.php?fav_error=File+type+not+allowed'); exit;
+    }
+    $dest = $dir . '/favicon.' . $ext;
+    // Remove old favicon files before saving new one
+    foreach (glob($dir . '/favicon.*') as $old) unlink($old);
+    move_uploaded_file($raw['tmp_name'], $dest);
+    header('Location: /admin/home-media.php?fav_saved=1'); exit;
+}
+
+// ── Delete favicon ────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_favicon') {
+    foreach (glob(get_home_media_path() . '/favicon.*') as $f) unlink($f);
+    header('Location: /admin/home-media.php'); exit;
+}
+
 // ── Delete ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $fname = basename($_POST['filename'] ?? '');
@@ -91,6 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
 $media = list_home_media();
 $img_exts = ['jpg','jpeg','png','webp','gif'];
 $vid_exts = ['mp4','mov','webm'];
+
+// Find existing favicon
+$fav_file = null;
+foreach (glob(get_home_media_path() . '/favicon.*') ?: [] as $f) {
+    $fav_file = ['path' => $f, 'url' => '/uploads/home/' . basename($f)];
+    break;
+}
 
 // Load existing text content
 $home_content_path = get_home_media_path() . '/content.json';
@@ -135,6 +167,38 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 <div class="header">
     <h1>Home</h1>
     <a href="/admin/dashboard.php" class="btn">&larr; Dashboard</a>
+</div>
+
+<!-- ── Favicon ─────────────────────────────────────────────── -->
+<div class="group">
+    <div class="group-title">Favicon</div>
+    <?php if (isset($_GET['fav_saved'])): ?>
+        <p class="upload-ok" style="margin-bottom:0.75rem">Favicon saved.</p>
+    <?php endif; ?>
+    <?php if ($err = ($_GET['fav_error'] ?? '')): ?>
+        <p class="upload-err" style="margin-bottom:0.75rem"><?= hv($err) ?></p>
+    <?php endif; ?>
+    <?php if ($fav_file): ?>
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:0.75rem">
+        <img src="<?= hv($fav_file['url']) ?>?v=<?= filemtime($fav_file['path']) ?>"
+             style="width:32px;height:32px;object-fit:contain;border:1px solid #ddd;background:#f9f9f9;padding:2px">
+        <span style="font-size:0.82rem;color:#666"><?= hv(basename($fav_file['url'])) ?></span>
+        <form method="POST" onsubmit="return confirm('Remove favicon?')" style="margin:0">
+            <input type="hidden" name="action" value="delete_favicon">
+            <button type="submit" style="font-size:0.78rem;color:#c00;background:none;border:none;cursor:pointer;padding:0">Remove</button>
+        </form>
+    </div>
+    <?php else: ?>
+        <p style="font-size:0.85rem;color:#aaa;font-style:italic;margin-bottom:0.75rem">No favicon set.</p>
+    <?php endif; ?>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="upload_favicon">
+        <div class="upload-row">
+            <input type="file" name="favicon" accept=".png,.jpg,.jpeg,.ico,.svg,.webp">
+            <button type="submit" class="upload-btn">Upload</button>
+        </div>
+        <p class="hint">Recommended: 32×32px PNG. Replaces any existing favicon.</p>
+    </form>
 </div>
 
 <div class="group">

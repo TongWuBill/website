@@ -27,6 +27,15 @@ function render_header($title = '') {
         <!-- sets initial state before first paint so the enter animation is visible even on initial load -->
         <style>.page-content { opacity: 0.08; transform: translateY(10px); }</style>
         <link rel="stylesheet" href="/css/style.css?v=<?= filemtime(__DIR__ . '/../public/css/style.css') ?>">
+        <?php
+        $fav_dir = __DIR__ . '/../public/uploads/home';
+        foreach (glob($fav_dir . '/favicon.*') ?: [] as $_fav) {
+            $fav_ext = pathinfo($_fav, PATHINFO_EXTENSION);
+            $fav_type = $fav_ext === 'ico' ? 'image/x-icon' : ($fav_ext === 'svg' ? 'image/svg+xml' : 'image/' . $fav_ext);
+            echo '<link rel="icon" type="' . $fav_type . '" href="/uploads/home/favicon.' . $fav_ext . '?v=' . filemtime($_fav) . '">' . "\n        ";
+            break;
+        }
+        ?>
         <script defer src="https://cloud.umami.is/script.js" data-website-id="2baa3983-e078-4c3b-92af-5dd0b54ad5e6"></script>
     </head>
     <body>
