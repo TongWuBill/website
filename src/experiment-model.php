@@ -44,6 +44,12 @@ function get_experiments_grouped(): array {
         $cat = $r['category'] ?: 'Uncategorised';
         $groups[$cat][] = $r;
     }
+    // Sort categories: most experiments first, ties broken alphabetically
+    uksort($groups, function ($a, $b) use ($groups) {
+        $diff = count($groups[$b]) - count($groups[$a]);
+        if ($diff !== 0) return $diff;
+        return strcasecmp($a, $b);
+    });
     return $groups;
 }
 

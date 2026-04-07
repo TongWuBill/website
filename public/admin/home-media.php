@@ -8,35 +8,53 @@ $allowed = ['jpg','jpeg','png','webp','gif','mp4','mov','webm'];
 $upload_error = '';
 $upload_ok    = false;
 
+$is_ajax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+
 // ── Upload ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload') {
-    if (empty($_FILES['media']['name'])) {
-        $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
-        $upload_error = $cl > 0
-            ? 'post_max_size exceeded — current: ' . ini_get('post_max_size')
-            : 'No file received';
-    } else {
-        $file = $_FILES['media'];
-        $ext  = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, $allowed)) {
-            $upload_error = 'File type .' . $ext . ' not allowed';
-        } elseif ($file['error'] !== UPLOAD_ERR_OK) {
-            $upload_error = 'Upload error code: ' . $file['error'];
-        } else {
-            $dir = get_home_media_path();
-            if (!is_dir($dir)) mkdir($dir, 0775, true);
-            if (!is_writable($dir)) {
-                $upload_error = 'Upload folder not writable: ' . $dir;
-            } else {
-                $dest = $dir . '/' . time() . '_' . preg_replace('/[^a-z0-9._-]/i', '_', $file['name']);
-                if (move_uploaded_file($file['tmp_name'], $dest)) {
-                    $upload_ok = true;
-                } else {
-                    $upload_error = 'move_uploaded_file failed';
-                }
+    $dir = get_home_media_path();
+    if (!is_dir($dir)) mkdir($dir, 0775, true);
+
+    $raw = $_FILES['media'] ?? [];
+    $entries = [];
+    if (!empty($raw['name'])) {
+        if (is_array($raw['name'])) {
+            foreach ($raw['name'] as $i => $n) {
+                $entries[] = ['name' => $n, 'tmp' => $raw['tmp_name'][$i], 'error' => $raw['error'][$i]];
             }
+        } else {
+            $entries[] = ['name' => $raw['name'], 'tmp' => $raw['tmp_name'], 'error' => $raw['error']];
         }
     }
+
+    if (empty($entries)) {
+        $msg = 'No file received';
+        if ($is_ajax) { header('Content-Type: application/json'); echo json_encode(['ok'=>false,'error'=>$msg]); exit; }
+        header('Location: /admin/home-media.php?upload_error=' . urlencode($msg)); exit;
+    }
+
+    $uploaded = []; $errors = [];
+    foreach ($entries as $entry) {
+        $ext = strtolower(pathinfo($entry['name'], PATHINFO_EXTENSION));
+        if ($entry['error'] !== UPLOAD_ERR_OK) { $errors[] = $entry['name'] . ': error ' . $entry['error']; continue; }
+        if (!in_array($ext, $allowed)) { $errors[] = '.' . $ext . ' not allowed'; continue; }
+        if (!is_writable($dir)) { $errors[] = 'Folder not writable'; break; }
+        $dest = $dir . '/' . time() . '_' . preg_replace('/[^a-z0-9._-]/i', '_', $entry['name']);
+        if (move_uploaded_file($entry['tmp'], $dest)) {
+            $rel = '/uploads/home/' . basename($dest);
+            $uploaded[] = ['url' => $rel, 'name' => basename($dest), 'ext' => $ext];
+        } else {
+            $errors[] = $entry['name'] . ': move failed';
+        }
+    }
+
+    if ($is_ajax) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => empty($errors), 'files' => $uploaded, 'errors' => $errors]);
+        exit;
+    }
+    $upload_ok    = !empty($uploaded);
+    $upload_error = implode('; ', $errors);
     header('Location: /admin/home-media.php'
         . ($upload_ok ? '?uploaded=1' : '?upload_error=' . urlencode($upload_error)));
     exit;
@@ -109,9 +127,9 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
     <?php endif; ?>
 
     <?php if (empty($media)): ?>
-        <p class="media-empty">No hero media yet.</p>
-    <?php else: ?>
-    <div class="media-grid">
+        <p class="media-empty" id="home-empty">No hero media yet.</p>
+    <?php endif; ?>
+    <div class="media-grid" id="home-grid"<?= empty($media) ? ' style="display:none"' : '' ?>>
         <?php foreach ($media as $f): ?>
         <div class="media-item">
             <?php if (in_array($f['ext'], $img_exts)): ?>
@@ -129,17 +147,79 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
         <?php endforeach; ?>
     </div>
     <p class="order-note">Files are shown in alphabetical order — rename files to control display order (e.g. 01_image.jpg, 02_image.jpg).</p>
-    <?php endif; ?>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form id="home-upload-form" enctype="multipart/form-data">
         <input type="hidden" name="action" value="upload">
         <div class="upload-row">
-            <input type="file" name="media" accept="image/*,video/*">
-            <button type="submit" class="upload-btn">Upload</button>
+            <input type="file" name="media[]" accept="image/*,video/*" multiple>
+            <button type="submit" class="upload-btn" id="home-upload-btn">Upload</button>
+            <span id="home-upload-status" style="font-size:0.78rem"></span>
         </div>
-        <p class="hint">Allowed: jpg, png, webp, gif, mp4, mov, webm</p>
+        <p class="hint">Allowed: jpg, png, webp, gif, mp4, mov, webm — multiple files supported</p>
     </form>
 </div>
 
+<script>
+(function () {
+    const form   = document.getElementById('home-upload-form');
+    const btn    = document.getElementById('home-upload-btn');
+    const status = document.getElementById('home-upload-status');
+    const grid   = document.getElementById('home-grid');
+    const empty  = document.getElementById('home-empty');
+    const IMG = ['jpg','jpeg','png','webp','gif'];
+    const VID = ['mp4','mov','webm'];
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const fileInput = form.querySelector('input[type="file"]');
+        if (!fileInput.files.length) return;
+        btn.disabled = true;
+        status.textContent = 'Uploading…'; status.style.color = '#888';
+
+        const fd = new FormData(form);
+        fd.delete('media[]');
+        for (const f of fileInput.files) fd.append('media[]', f);
+
+        try {
+            const res  = await fetch(window.location.href, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: fd
+            });
+            const data = await res.json();
+
+            if (data.files && data.files.length) {
+                if (empty) empty.remove();
+                grid.style.display = '';
+                data.files.forEach(function (f) {
+                    const item = document.createElement('div');
+                    item.className = 'media-item';
+                    if (IMG.includes(f.ext)) {
+                        const img = document.createElement('img'); img.src = f.url; img.alt = ''; item.appendChild(img);
+                    } else if (VID.includes(f.ext)) {
+                        const v = document.createElement('video');
+                        v.src = f.url; v.muted = true; v.setAttribute('playsinline',''); v.setAttribute('preload','metadata');
+                        item.appendChild(v);
+                    }
+                    const n = document.createElement('div'); n.className = 'media-item-name'; n.textContent = f.name; item.appendChild(n);
+                    grid.appendChild(item);
+                });
+            }
+
+            if (data.errors && data.errors.length) {
+                status.textContent = '✗ ' + data.errors.join('; '); status.style.color = '#c00';
+            } else {
+                status.textContent = '✓ ' + (data.files?.length || 0) + ' file(s) uploaded';
+                status.style.color = '#155724';
+                fileInput.value = '';
+                setTimeout(() => { status.textContent = ''; }, 3000);
+            }
+        } catch (err) {
+            status.textContent = '✗ Network error'; status.style.color = '#c00';
+        }
+        btn.disabled = false;
+    });
+}());
+</script>
 </body>
 </html>
