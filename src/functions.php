@@ -27,6 +27,7 @@ function render_header($title = '') {
         <!-- sets initial state before first paint so the enter animation is visible even on initial load -->
         <style>.page-content { opacity: 0.08; transform: translateY(10px); }</style>
         <link rel="stylesheet" href="/css/style.css?v=<?= filemtime(__DIR__ . '/../public/css/style.css') ?>">
+        <script defer src="https://cloud.umami.is/script.js" data-website-id="2baa3983-e078-4c3b-92af-5dd0b54ad5e6"></script>
     </head>
     <body>
         <script>
