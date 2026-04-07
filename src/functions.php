@@ -25,7 +25,7 @@ function render_header($title = '') {
         <title><?= htmlspecialchars($title ?: 'Tong Wu') ?></title>
         <!-- sets initial state before first paint so the enter animation is visible even on initial load -->
         <style>.page-content { opacity: 0.08; transform: translateY(10px); }</style>
-        <link rel="stylesheet" href="/css/style.css">
+        <link rel="stylesheet" href="/css/style.css?v=<?= filemtime(__DIR__ . '/../public/css/style.css') ?>">
     </head>
     <body>
         <script>

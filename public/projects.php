@@ -50,7 +50,7 @@ render_header('Work');
       <div class="work-card-image">
         <?php if ($thumb): ?>
           <?php if (in_array($thumb['ext'], $vid_exts)): ?>
-            <video src="<?= htmlspecialchars($thumb['url']) ?>" muted playsinline loop autoplay class="work-card-thumb-vid" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover"></video>
+            <video src="<?= htmlspecialchars($thumb['url']) ?>" muted playsinline loop autoplay class="work-card-thumb-vid" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;pointer-events:none"></video>
           <?php else: ?>
             <img src="<?= htmlspecialchars($thumb['url']) ?>" alt="<?= htmlspecialchars($p['title']) ?>">
           <?php endif; ?>
