@@ -44,9 +44,14 @@ function render_header($title = '') {
                 });
             });
 
-            // bfcache restore — skip transition, snap visible
+            // bfcache restore — remove leaving state, snap visible instantly
             window.addEventListener('pageshow', function (e) {
-                if (e.persisted) document.body.classList.add('instant');
+                if (e.persisted) {
+                    document.body.classList.remove('page-leaving');
+                    document.body.classList.add('instant');
+                    var content = document.querySelector('.page-content');
+                    if (content) content.classList.add('is-visible');
+                }
             });
 
             // ── Media fade-in (Apple-style) ──────────────────────────
