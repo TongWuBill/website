@@ -209,6 +209,11 @@ function fv(array $c, string $key, string $sub = ''): string {
         .upload-btn { padding: 0.4rem 0.9rem; background: #fff; border: 1px solid #999; font-size: 0.82rem; cursor: pointer; font-family: inherit; white-space: nowrap; }
         .upload-btn:hover { background: #222; color: #fff; border-color: #222; }
         .section-note { font-size: 0.75rem; color: #888; margin-top: 0.5rem; }
+        .row-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .btn-remove { font-size: 0.72rem; color: #c00; background: none; border: 1px solid #ecc; padding: 0.15rem 0.5rem; cursor: pointer; font-family: inherit; }
+        .btn-remove:hover { background: #c00; color: #fff; border-color: #c00; }
+        .btn-add { margin-top: 0.75rem; font-size: 0.8rem; background: none; border: 1px dashed #bbb; color: #666; padding: 0.35rem 0.9rem; cursor: pointer; font-family: inherit; width: 100%; }
+        .btn-add:hover { border-color: #222; color: #222; }
     </style>
 </head>
 <body>
@@ -285,12 +290,13 @@ function fv(array $c, string $key, string $sub = ''): string {
 <!-- Education -->
 <div class="group">
     <div class="group-title">Education</div>
+    <div id="edu-list">
     <?php foreach ($edu as $i => $ed): ?>
     <div class="row-block">
-        <div class="row-num">#<?= $i+1 ?></div>
+        <div class="row-head"><span class="row-num">Entry <?= $i+1 ?></span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
         <div class="field">
             <div class="two-col">
-                <div><label>School (same in both languages)</label><input type="text" name="edu_school[]" value="<?= hv($ed['school'] ?? '') ?>"></div>
+                <div><label>School</label><input type="text" name="edu_school[]" value="<?= hv($ed['school'] ?? '') ?>"></div>
                 <div><label>Years</label><input type="text" name="edu_years[]" value="<?= hv($ed['years'] ?? '') ?>" placeholder="2023–2025"></div>
             </div>
         </div>
@@ -302,14 +308,17 @@ function fv(array $c, string $key, string $sub = ''): string {
         </div>
     </div>
     <?php endforeach; ?>
+    </div>
+    <button type="button" class="btn-add" onclick="addRow('edu-list', eduTemplate())">+ Add Education</button>
 </div>
 
 <!-- Experience -->
 <div class="group">
     <div class="group-title">Experience</div>
+    <div id="exp-list">
     <?php foreach ($exp as $i => $ex): ?>
     <div class="row-block">
-        <div class="row-num">#<?= $i+1 ?></div>
+        <div class="row-head"><span class="row-num">Entry <?= $i+1 ?></span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
         <div class="field">
             <div class="two-col">
                 <div>
@@ -329,27 +338,34 @@ function fv(array $c, string $key, string $sub = ''): string {
         </div>
     </div>
     <?php endforeach; ?>
+    </div>
+    <button type="button" class="btn-add" onclick="addRow('exp-list', expTemplate())">+ Add Experience</button>
 </div>
 
 <!-- Selected Focus -->
 <div class="group">
     <div class="group-title">Selected Focus</div>
+    <div id="focus-list">
     <?php foreach ($focus as $i => $f): ?>
     <div class="row-block">
+        <div class="row-head"><span class="row-num">Item <?= $i+1 ?></span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
         <div class="en-cn">
-            <div><label>Item <?= $i+1 ?> (EN)</label><input type="text" name="focus_en[]" value="<?= hv($f['en'] ?? '') ?>"></div>
-            <div><label>Item <?= $i+1 ?> (中文)</label><input type="text" name="focus_cn[]" value="<?= hv($f['cn'] ?? '') ?>"></div>
+            <div><label>EN</label><input type="text" name="focus_en[]" value="<?= hv($f['en'] ?? '') ?>"></div>
+            <div><label>中文</label><input type="text" name="focus_cn[]" value="<?= hv($f['cn'] ?? '') ?>"></div>
         </div>
     </div>
     <?php endforeach; ?>
+    </div>
+    <button type="button" class="btn-add" onclick="addRow('focus-list', focusTemplate())">+ Add Focus Item</button>
 </div>
 
 <!-- Skills -->
 <div class="group">
     <div class="group-title">Skills</div>
+    <div id="skills-list">
     <?php foreach ($skills as $i => $sk): ?>
     <div class="row-block">
-        <div class="row-num">#<?= $i+1 ?></div>
+        <div class="row-head"><span class="row-num">Entry <?= $i+1 ?></span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
         <div class="field">
             <div class="en-cn">
                 <div><label>Category (EN)</label><input type="text" name="skill_cat_en[]" value="<?= hv($sk['cat_en'] ?? '') ?>"></div>
@@ -364,6 +380,8 @@ function fv(array $c, string $key, string $sub = ''): string {
         </div>
     </div>
     <?php endforeach; ?>
+    </div>
+    <button type="button" class="btn-add" onclick="addRow('skills-list', skillTemplate())">+ Add Skill</button>
 </div>
 
 <!-- Contact -->
@@ -380,6 +398,66 @@ function fv(array $c, string $key, string $sub = ''): string {
 </form>
 
 <script>
+function addRow(listId, html) {
+    document.getElementById(listId).insertAdjacentHTML('beforeend', html);
+}
+function removeRow(btn) { btn.closest('.row-block').remove(); }
+
+function eduTemplate() {
+    return `<div class="row-block">
+        <div class="row-head"><span class="row-num">Entry</span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
+        <div class="field"><div class="two-col">
+            <div><label>School</label><input type="text" name="edu_school[]" value=""></div>
+            <div><label>Years</label><input type="text" name="edu_years[]" value="" placeholder="2023–2025"></div>
+        </div></div>
+        <div class="field"><div class="en-cn">
+            <div><label>Degree (EN)</label><input type="text" name="edu_degree_en[]" value=""></div>
+            <div><label>Degree (中文)</label><input type="text" name="edu_degree_cn[]" value=""></div>
+        </div></div>
+    </div>`;
+}
+
+function expTemplate() {
+    return `<div class="row-block">
+        <div class="row-head"><span class="row-num">Entry</span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
+        <div class="field"><div class="two-col">
+            <div><div class="en-cn">
+                <div><label>Role (EN)</label><input type="text" name="exp_role_en[]" value=""></div>
+                <div><label>Role (中文)</label><input type="text" name="exp_role_cn[]" value=""></div>
+            </div></div>
+            <div><label>Years</label><input type="text" name="exp_years[]" value="" placeholder="2024–2025"></div>
+        </div></div>
+        <div class="field"><div class="en-cn">
+            <div><label>Organisation (EN)</label><input type="text" name="exp_org_en[]" value=""></div>
+            <div><label>Organisation (中文)</label><input type="text" name="exp_org_cn[]" value=""></div>
+        </div></div>
+    </div>`;
+}
+
+function focusTemplate() {
+    return `<div class="row-block">
+        <div class="row-head"><span class="row-num">Item</span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
+        <div class="en-cn">
+            <div><label>EN</label><input type="text" name="focus_en[]" value=""></div>
+            <div><label>中文</label><input type="text" name="focus_cn[]" value=""></div>
+        </div>
+    </div>`;
+}
+
+function skillTemplate() {
+    return `<div class="row-block">
+        <div class="row-head"><span class="row-num">Entry</span><button type="button" class="btn-remove" onclick="this.closest('.row-block').remove()">Remove</button></div>
+        <div class="field"><div class="en-cn">
+            <div><label>Category (EN)</label><input type="text" name="skill_cat_en[]" value=""></div>
+            <div><label>Category (中文)</label><input type="text" name="skill_cat_cn[]" value=""></div>
+        </div></div>
+        <div class="field"><div class="en-cn">
+            <div><label>Tools (EN)</label><input type="text" name="skill_tools_en[]" value=""></div>
+            <div><label>Tools (中文)</label><input type="text" name="skill_tools_cn[]" value=""></div>
+        </div></div>
+    </div>`;
+}
+
 (function () {
     const form   = document.getElementById('photo-upload-form');
     const btn    = document.getElementById('photo-upload-btn');
