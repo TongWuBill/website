@@ -146,8 +146,12 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
         .media-item-name { padding: 0.3rem 0.5rem; font-size: 0.7rem; color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .media-delete { position: absolute; top: 4px; right: 4px; background: rgba(200,0,0,0.8); color: #fff; border: none; font-size: 0.7rem; padding: 0.15rem 0.4rem; cursor: pointer; }
         .media-delete:hover { background: #c00; }
-        .upload-ok { color: #155724; font-size: 0.85rem; margin-bottom: 0.75rem; }
+        .upload-ok  { color: #155724; font-size: 0.85rem; margin-bottom: 0.75rem; }
         .upload-err { color: #c00; font-size: 0.85rem; margin-bottom: 0.75rem; }
+        .upload-btn { padding: 0.4rem 0.9rem; background: #fff; border: 1px solid #999; font-size: 0.82rem;
+                      cursor: pointer; white-space: nowrap; font-family: inherit; color: #333; }
+        .upload-btn:hover { background: #222; color: #fff; border-color: #222; }
+        .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -216,7 +220,7 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
             <label>Upload files</label>
             <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
                 <input type="file" name="media[]" accept="image/*,video/*,.pdf" multiple style="flex:1;min-width:0">
-                <button type="submit" id="exp-upload-btn" style="padding:0.4rem 0.9rem;background:#fff;border:1px solid #999;font-size:0.82rem;cursor:pointer;font-family:inherit;white-space:nowrap">Upload</button>
+                <button type="submit" id="exp-upload-btn" class="upload-btn">Upload</button>
                 <span id="exp-upload-status" style="font-size:0.78rem"></span>
             </div>
             <p class="hint">Allowed: jpg, png, webp, gif, mp4, mov, webm, pdf — multiple files supported</p>

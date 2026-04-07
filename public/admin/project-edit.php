@@ -430,7 +430,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <p class="media-empty">No hero media yet.</p>
         <?php endif; ?>
 
-        <form class="ajax-upload" data-action="upload_hero" data-grid="hero-grid" enctype="multipart/form-data">
+        <form class="ajax-upload" data-action="upload_hero" data-grid="hero-grid" data-replace="true" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_hero">
             <div class="upload-row">
                 <input type="file" name="media[]" accept="image/*,video/*">
@@ -480,7 +480,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <p class="media-empty">No thumbnail yet. Falls back to first image in the folder.</p>
         <?php endif; ?>
 
-        <form class="ajax-upload" data-action="upload_thumbnail" data-grid="thumb-grid" enctype="multipart/form-data">
+        <form class="ajax-upload" data-action="upload_thumbnail" data-grid="thumb-grid" data-replace="true" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_thumbnail">
             <div class="upload-row">
                 <input type="file" name="media[]" accept="image/*,video/*">
@@ -812,6 +812,8 @@ function switchTab(name) {
 
                 if (data.files && data.files.length) {
                     const grid = getOrCreateGrid(gridId, form);
+                    // For hero/thumbnail: clear old items before inserting replacement
+                    if (form.dataset.replace === 'true') grid.innerHTML = '';
                     data.files.forEach(f => grid.appendChild(makeMediaItem(f)));
                 }
 
