@@ -88,7 +88,7 @@ function list_project_media(string $slug): array {
 function list_home_media(): array {
     return array_values(array_filter(
         _list_media_files(get_home_media_path()),
-        fn($f) => $f['ext'] !== 'json'
+        fn($f) => $f['ext'] !== 'json' && !str_starts_with($f['name'], 'favicon.')
     ));
 }
 
