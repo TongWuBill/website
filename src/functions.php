@@ -90,12 +90,9 @@ function render_header($title = '') {
                 document.addEventListener('DOMContentLoaded', function () {
                     document.querySelectorAll(SEL).forEach(watch);
 
-                    // Work card video thumbnails: play on hover, pause on leave
+                    // Work card video thumbnails: autoplay loop
                     document.querySelectorAll('.work-card-thumb-vid').forEach(function (v) {
-                        var card = v.closest('.work-card');
-                        if (!card) return;
-                        card.addEventListener('mouseenter', function () { v.play(); });
-                        card.addEventListener('mouseleave', function () { v.pause(); v.currentTime = 0; });
+                        v.play().catch(function () {});
                     });
 
                     // Watch DOM for dynamically inserted media (e.g. experiment modal)
