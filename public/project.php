@@ -17,17 +17,15 @@ $media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','d
 $img_exts   = ['jpg','jpeg','png','webp','gif'];
 $vid_exts   = ['mp4','webm','mov'];
 
-// ── Load content sections (prefer CN if lang=cn and sections_cn exists) ───────
-$sections_raw = (get_lang() === 'cn' && !empty($project['sections_cn']))
-    ? $project['sections_cn']
-    : ($project['sections'] ?? '');
-if (!empty($sections_raw)) {
-    $decoded_sections = json_decode($sections_raw, true);
-    $content_sections = is_array($decoded_sections) ? $decoded_sections : [];
+// ── Load EN sections (always used for media filename matching) ────────────────
+$en_sections_raw = $project['sections'] ?? '';
+if (!empty($en_sections_raw)) {
+    $decoded_en = json_decode($en_sections_raw, true);
+    $en_sections = is_array($decoded_en) ? $decoded_en : [];
 } else {
-    $content_sections = [];
+    $en_sections = [];
 }
-if (empty($content_sections)) {
+if (empty($en_sections)) {
     foreach ([
         'Concept'      => $project['immersion']        ?? '',
         'Context'      => $project['context']          ?? '',
@@ -36,14 +34,23 @@ if (empty($content_sections)) {
         'Presentation' => $project['reflection']       ?? '',
     ] as $label => $body) {
         if (trim((string)$body) !== '') {
-            $content_sections[] = ['label' => $label, 'body' => (string)$body];
+            $en_sections[] = ['label' => $label, 'body' => (string)$body];
         }
     }
 }
 
-$section_keys  = array_map(
+// ── Load display sections (CN if available, else EN) ──────────────────────────
+if (get_lang() === 'cn' && !empty($project['sections_cn'])) {
+    $decoded_cn = json_decode($project['sections_cn'], true);
+    $content_sections = is_array($decoded_cn) ? $decoded_cn : $en_sections;
+} else {
+    $content_sections = $en_sections;
+}
+
+// Section keys always derived from EN labels (match uploaded file names)
+$section_keys = array_map(
     fn($s) => strtolower(preg_replace('/[^a-z0-9]/i', '', $s['label'])),
-    $content_sections
+    $en_sections
 );
 
 $section_media = array_fill(0, count($content_sections), []);
