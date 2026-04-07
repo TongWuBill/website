@@ -64,38 +64,33 @@ function upload_error_msg(int $code): string {
     };
 }
 
-function do_upload(int $id, string $slug, string $dest_name, bool $replace_prefix = false): string {
+// Returns true if this is an AJAX upload request
+function is_ajax(): bool {
+    return ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest';
+}
+
+function json_response(array $data): never {
+    header('Content-Type: application/json');
+    echo json_encode($data);
+    exit;
+}
+
+// Upload one file from a normalized file array entry, return ['url','name','ext'] or throw string error
+function upload_one(string $slug, string $dest_name, string $tmp, string $orig_name, int $err_code, bool $replace_prefix = false): array {
     global $allowed_exts;
-
-    // Check if PHP even received the file data (post_max_size exceeded silently empties $_FILES)
-    if (empty($_FILES['media']['name'])) {
-        // Check if a file was sent at all via Content-Length
-        $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
-        if ($cl > 0) {
-            return 'post_max_size exceeded — PHP silently dropped the upload. Current post_max_size: ' . ini_get('post_max_size');
-        }
-        return 'No file received';
-    }
-
-    $err = $_FILES['media']['error'];
-    if ($err !== UPLOAD_ERR_OK) return upload_error_msg($err);
-
-    $ext = strtolower(pathinfo($_FILES['media']['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed_exts)) return 'File type .' . $ext . ' not allowed';
+    if ($err_code !== UPLOAD_ERR_OK) throw new RuntimeException(upload_error_msg($err_code));
+    $ext = strtolower(pathinfo($orig_name, PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowed_exts)) throw new RuntimeException('File type .' . $ext . ' not allowed');
 
     $dir = get_project_media_path($slug);
     if (!is_dir($dir)) {
         if (!mkdir($dir, 0775, true)) {
             $parent = dirname($dir);
-            return 'Cannot create upload folder. Directory: ' . $dir
-                . ' | Parent writable: ' . (is_writable($parent) ? 'yes' : 'NO — run: chmod 775 ' . $parent . ' && chown www-data:www-data ' . $parent);
+            throw new RuntimeException('Cannot create folder — chmod 775 ' . $parent);
         }
     }
-    if (!is_writable($dir)) {
-        return 'Upload folder not writable: ' . $dir . ' — run: chmod 775 ' . $dir . ' && chown www-data:www-data ' . $dir;
-    }
+    if (!is_writable($dir)) throw new RuntimeException('Folder not writable: ' . $dir);
 
-    // Delete existing files with same prefix if requested
     if ($replace_prefix) {
         $prefix = explode('-', $dest_name)[0];
         foreach (scandir($dir) ?: [] as $f) {
@@ -104,53 +99,84 @@ function do_upload(int $id, string $slug, string $dest_name, bool $replace_prefi
     }
 
     $dest = $dir . '/' . $dest_name . '-' . time() . '.' . $ext;
-    if (!move_uploaded_file($_FILES['media']['tmp_name'], $dest)) {
-        return 'move_uploaded_file failed — tmp: ' . $_FILES['media']['tmp_name'] . ' → dest: ' . $dest;
-    }
+    if (!move_uploaded_file($tmp, $dest)) throw new RuntimeException('move_uploaded_file failed');
 
-    return '';
+    $rel = '/uploads/projects/' . $slug . '/' . basename($dest);
+    return ['url' => $rel, 'name' => basename($dest), 'ext' => $ext];
+}
+
+// Normalize $_FILES['media'] into a flat array of entries
+function normalize_files(): array {
+    $f = $_FILES['media'] ?? [];
+    if (empty($f['name'])) return [];
+    // Multiple files: name is array
+    if (is_array($f['name'])) {
+        $out = [];
+        foreach ($f['name'] as $i => $name) {
+            $out[] = ['name' => $name, 'tmp' => $f['tmp_name'][$i], 'error' => $f['error'][$i]];
+        }
+        return $out;
+    }
+    // Single file
+    return [['name' => $f['name'], 'tmp' => $f['tmp_name'], 'error' => $f['error']]];
 }
 
 // ── Handle media upload (section) ─────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_section') {
     $sec_key = preg_replace('/[^a-z0-9]/', '', strtolower($_POST['sec_key'] ?? ''));
-    $uerr = '';
     if ($sec_key === '') {
-        $uerr = 'Section key is empty — save the project first so the section has a label';
-    } else {
-        $uerr = do_upload($id, $project['slug'], $sec_key);
+        if (is_ajax()) json_response(['ok' => false, 'error' => 'Section key empty — save project first']);
+        header('Location: /admin/project-edit.php?id=' . $id . '&tab=content&upload_error=' . urlencode('Section key empty'));
+        exit;
     }
+    $files = normalize_files(); $uploaded = []; $errors = [];
+    foreach ($files as $entry) {
+        try { $uploaded[] = upload_one($project['slug'], $sec_key, $entry['tmp'], $entry['name'], $entry['error']); }
+        catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
+    }
+    if (is_ajax()) json_response(['ok' => empty($errors), 'files' => $uploaded, 'errors' => $errors]);
     $loc = '/admin/project-edit.php?id=' . $id . '&tab=content';
-    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
-    header('Location: ' . $loc);
-    exit;
+    if ($errors) $loc .= '&upload_error=' . urlencode(implode('; ', $errors));
+    header('Location: ' . $loc); exit;
 }
 
 // ── Handle media upload (thumbnail) ──────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_thumbnail') {
-    $uerr = do_upload($id, $project['slug'], 'thumb', true);
-    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
-    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
-    header('Location: ' . $loc);
-    exit;
+    $files = normalize_files(); $uploaded = []; $errors = []; $first = true;
+    foreach ($files as $entry) {
+        try { $uploaded[] = upload_one($project['slug'], 'thumb', $entry['tmp'], $entry['name'], $entry['error'], $first); $first = false; }
+        catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
+    }
+    if (is_ajax()) json_response(['ok' => empty($errors), 'files' => $uploaded, 'errors' => $errors]);
+    $loc = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($errors) $loc .= '&upload_error=' . urlencode(implode('; ', $errors));
+    header('Location: ' . $loc); exit;
 }
 
 // ── Handle media upload (hero) ───────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_hero') {
-    $uerr = do_upload($id, $project['slug'], 'hero', true);
-    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
-    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
-    header('Location: ' . $loc);
-    exit;
+    $files = normalize_files(); $uploaded = []; $errors = []; $first = true;
+    foreach ($files as $entry) {
+        try { $uploaded[] = upload_one($project['slug'], 'hero', $entry['tmp'], $entry['name'], $entry['error'], $first); $first = false; }
+        catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
+    }
+    if (is_ajax()) json_response(['ok' => empty($errors), 'files' => $uploaded, 'errors' => $errors]);
+    $loc = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($errors) $loc .= '&upload_error=' . urlencode(implode('; ', $errors));
+    header('Location: ' . $loc); exit;
 }
 
 // ── Handle media upload (gallery) ────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_gallery') {
-    $uerr = do_upload($id, $project['slug'], 'gallery');
-    $loc  = '/admin/project-edit.php?id=' . $id . '&tab=content';
-    if ($uerr !== '') $loc .= '&upload_error=' . urlencode($uerr);
-    header('Location: ' . $loc);
-    exit;
+    $files = normalize_files(); $uploaded = []; $errors = [];
+    foreach ($files as $entry) {
+        try { $uploaded[] = upload_one($project['slug'], 'gallery', $entry['tmp'], $entry['name'], $entry['error']); }
+        catch (RuntimeException $e) { $errors[] = $e->getMessage(); }
+    }
+    if (is_ajax()) json_response(['ok' => empty($errors), 'files' => $uploaded, 'errors' => $errors]);
+    $loc = '/admin/project-edit.php?id=' . $id . '&tab=content';
+    if ($errors) $loc .= '&upload_error=' . urlencode(implode('; ', $errors));
+    header('Location: ' . $loc); exit;
 }
 
 // ── Handle media delete ───────────────────────────────────────
@@ -310,6 +336,8 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         .upload-btn { padding: 0.4rem 0.9rem; background: #fff; border: 1px solid #999; font-size: 0.82rem;
                       cursor: pointer; white-space: nowrap; font-family: inherit; color: #333; }
         .upload-btn:hover { background: #222; color: #fff; border-color: #222; }
+        .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .upload-status { font-size: 0.78rem; }
         .media-empty { font-size: 0.8rem; color: #bbb; font-style: italic; margin-bottom: 0.75rem; }
         .media-hint { font-size: 0.72rem; color: #aaa; margin-top: 0.4rem; }
 
@@ -379,7 +407,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <div class="content-block-head">Hero</div>
     <div class="content-block-body">
         <?php if (!empty($hero_files)): ?>
-        <div class="media-grid">
+        <div class="media-grid" id="hero-grid">
             <?php foreach ($hero_files as $f): ?>
             <div class="media-item">
                 <?php if (in_array($f['ext'], $img_exts)): ?>
@@ -402,11 +430,12 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <p class="media-empty">No hero media yet.</p>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form class="ajax-upload" data-action="upload_hero" data-grid="hero-grid" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_hero">
             <div class="upload-row">
-                <input type="file" name="media" accept="image/*,video/*">
+                <input type="file" name="media[]" accept="image/*,video/*">
                 <button type="submit" class="upload-btn">Upload hero</button>
+                <span class="upload-status"></span>
             </div>
             <p class="media-hint">Image or video. Uploading replaces the existing hero.</p>
         </form>
@@ -428,7 +457,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <div class="content-block-head">Thumbnail <span style="font-weight:400;color:#aaa;font-size:0.75rem">— shown on the Work list page</span></div>
     <div class="content-block-body">
         <?php if (!empty($thumb_files)): ?>
-        <div class="media-grid">
+        <div class="media-grid" id="thumb-grid">
             <?php foreach ($thumb_files as $f): ?>
             <div class="media-item">
                 <?php if (in_array($f['ext'], $img_exts)): ?>
@@ -451,11 +480,12 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <p class="media-empty">No thumbnail yet. Falls back to first image in the folder.</p>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form class="ajax-upload" data-action="upload_thumbnail" data-grid="thumb-grid" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_thumbnail">
             <div class="upload-row">
-                <input type="file" name="media" accept="image/*,video/*">
+                <input type="file" name="media[]" accept="image/*,video/*">
                 <button type="submit" class="upload-btn">Upload thumbnail</button>
+                <span class="upload-status"></span>
             </div>
             <p class="media-hint">Uploading replaces the existing thumbnail.</p>
         </form>
@@ -486,7 +516,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                     <div class="sec-col-right">
                         <div class="sec-col-right-label">Media</div>
                         <?php if (!empty($files)): ?>
-                        <div class="media-grid">
+                        <div class="media-grid" id="sec-grid-<?= hv($key) ?>">
                             <?php foreach ($files as $f): ?>
                             <div class="media-item">
                                 <?php if (in_array($f['ext'], $img_exts)): ?>
@@ -510,12 +540,13 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                         <?php endif; ?>
 
                         <?php if ($key): ?>
-                        <form method="POST" enctype="multipart/form-data">
+                        <form class="ajax-upload" data-action="upload_section" data-grid="sec-grid-<?= hv($key) ?>" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="upload_section">
                             <input type="hidden" name="sec_key" value="<?= hv($key) ?>">
                             <div class="upload-row">
-                                <input type="file" name="media" accept="image/*,video/*">
+                                <input type="file" name="media[]" accept="image/*,video/*" multiple>
                                 <button type="submit" class="upload-btn">Upload</button>
+                                <span class="upload-status"></span>
                             </div>
                             <p class="media-hint">Saved as <code><?= hv($key) ?>-{ts}.ext</code></p>
                         </form>
@@ -538,7 +569,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <div class="content-block-head">Gallery <span style="font-weight:400;color:#aaa;font-size:0.75rem">— peek carousel at the bottom of the project page</span></div>
     <div class="content-block-body">
         <?php if (!empty($gallery_files)): ?>
-        <div class="media-grid">
+        <div class="media-grid" id="gallery-grid">
             <?php foreach ($gallery_files as $f): ?>
             <div class="media-item">
                 <?php if (in_array($f['ext'], $img_exts)): ?>
@@ -561,11 +592,12 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <p class="media-empty">No gallery files yet.</p>
         <?php endif; ?>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form class="ajax-upload" data-action="upload_gallery" data-grid="gallery-grid" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_gallery">
             <div class="upload-row">
-                <input type="file" name="media" accept="image/*,video/*">
+                <input type="file" name="media[]" accept="image/*,video/*" multiple>
                 <button type="submit" class="upload-btn">Upload to gallery</button>
+                <span class="upload-status"></span>
             </div>
         </form>
     </div>
@@ -699,5 +731,100 @@ function switchTab(name) {
 }
 </script>
 
+<script>
+// ── AJAX Upload ───────────────────────────────────────────────
+(function () {
+    const IMG_EXTS = ['jpg','jpeg','png','webp','gif'];
+    const VID_EXTS = ['mp4','mov','webm'];
+
+    function makeMediaItem(f) {
+        const item = document.createElement('div');
+        item.className = 'media-item';
+        if (IMG_EXTS.includes(f.ext)) {
+            const img = document.createElement('img');
+            img.src = f.url; img.alt = '';
+            item.appendChild(img);
+        } else if (VID_EXTS.includes(f.ext)) {
+            const v = document.createElement('video');
+            v.src = f.url; v.muted = true; v.setAttribute('playsinline',''); v.setAttribute('preload','metadata');
+            v.style.cssText = 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block';
+            item.appendChild(v);
+        } else {
+            const d = document.createElement('div');
+            d.className = 'media-item-ext'; d.textContent = f.ext;
+            item.appendChild(d);
+        }
+        const name = document.createElement('div');
+        name.className = 'media-item-name'; name.textContent = f.name;
+        item.appendChild(name);
+        return item;
+    }
+
+    function getOrCreateGrid(gridId, form) {
+        let grid = document.getElementById(gridId);
+        if (!grid) {
+            // Remove "no files" placeholder if present
+            const empty = form.closest('.content-block-body, .sec-col-right')
+                             ?.querySelector('.media-empty');
+            if (empty) empty.remove();
+            grid = document.createElement('div');
+            grid.className = 'media-grid';
+            grid.id = gridId;
+            form.before(grid);
+        }
+        return grid;
+    }
+
+    document.querySelectorAll('form.ajax-upload').forEach(function (form) {
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const fileInput = form.querySelector('input[type="file"]');
+            if (!fileInput.files.length) return;
+
+            const btn    = form.querySelector('button[type="submit"]');
+            const status = form.querySelector('.upload-status');
+            const gridId = form.dataset.grid;
+
+            btn.disabled = true;
+            status.textContent = 'Uploading…';
+            status.style.color = '#888';
+
+            const fd = new FormData(form);
+            // Append all selected files under media[]
+            fd.delete('media[]');
+            for (const file of fileInput.files) fd.append('media[]', file);
+
+            try {
+                const res = await fetch(window.location.href, {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                });
+                const data = await res.json();
+
+                if (data.files && data.files.length) {
+                    const grid = getOrCreateGrid(gridId, form);
+                    data.files.forEach(f => grid.appendChild(makeMediaItem(f)));
+                }
+
+                if (data.errors && data.errors.length) {
+                    status.textContent = '✗ ' + data.errors.join('; ');
+                    status.style.color = '#c00';
+                } else {
+                    status.textContent = '✓ Uploaded ' + (data.files?.length || 0) + ' file(s)';
+                    status.style.color = '#155724';
+                    fileInput.value = '';
+                    setTimeout(() => { status.textContent = ''; }, 3000);
+                }
+            } catch (err) {
+                status.textContent = '✗ Network error';
+                status.style.color = '#c00';
+            }
+
+            btn.disabled = false;
+        });
+    });
+}());
+</script>
 </body>
 </html>
