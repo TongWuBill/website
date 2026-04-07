@@ -38,7 +38,7 @@ render_header(t('work.page_title'));
       <h1><?= t('work.heading') ?></h1>
       <span class="work-count"><?= count($projects) ?> projects</span>
     </div>
-    <p class="work-page-subtitle">Explorations in interactive systems, media, and perception.</p>
+    <p class="work-page-subtitle"><?= t('work.subtitle') ?></p>
   </div>
 
   <div class="work-grid">

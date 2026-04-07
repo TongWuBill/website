@@ -64,7 +64,7 @@ render_header(t('experiments.page_title'));
 
   <div class="exp-page-header">
     <h1><?= t('experiments.heading') ?></h1>
-    <p>Smaller works, sketches, and ongoing research.</p>
+    <p><?= t('experiments.subtitle') ?></p>
   </div>
 
   <?php

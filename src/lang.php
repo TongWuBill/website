@@ -90,10 +90,12 @@ function _lang_strings(): array {
             // Work page
             'work.page_title' => 'Work — Tong Wu',
             'work.heading'    => 'Work',
+            'work.subtitle'   => 'Explorations in interactive systems, media, and perception.',
 
             // Experiments page
             'experiments.page_title' => 'Experiments — Tong Wu',
             'experiments.heading'    => 'Experiments',
+            'experiments.subtitle'   => 'Smaller works, sketches, and ongoing research.',
 
             // Project detail meta labels
             'project.year'       => 'Year',
@@ -159,10 +161,12 @@ function _lang_strings(): array {
             // Work page
             'work.page_title' => '作品 — 吴彤',
             'work.heading'    => '作品',
+            'work.subtitle'   => '探索交互系统、媒体与感知的创作实践。',
 
             // Experiments page
             'experiments.page_title' => '实验 — 吴彤',
             'experiments.heading'    => '实验',
+            'experiments.subtitle'   => '小型作品、草稿与进行中的研究。',
 
             // Project detail meta labels
             'project.year'       => '年份',
