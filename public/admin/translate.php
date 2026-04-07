@@ -101,7 +101,7 @@ if (!$dry_run) {
             $db->prepare("UPDATE projects SET title_cn=?, subtitle_cn=?, sections_cn=? WHERE id=?")
                ->execute([$title_cn, $subtitle_cn ?: null, $sections_cn, $id]);
 
-            log_msg("✓ Project #{$id} "{$p['title']}" → "{$title_cn}"");
+            log_msg("OK Project #{$id} [{$p['title']}] -> [{$title_cn}]");
         } catch (Throwable $e) {
             $errors[] = "Project #{$id}: " . $e->getMessage();
         }
@@ -120,7 +120,7 @@ if (!$dry_run) {
             $db->prepare("UPDATE experiments SET title_cn=?, description_cn=? WHERE id=?")
                ->execute([$title_cn, $desc_cn ?: null, $id]);
 
-            log_msg("✓ Experiment #{$id} "{$e['title']}" → "{$title_cn}"");
+            log_msg("OK Experiment #{$id} [{$e['title']}] -> [{$title_cn}]");
         } catch (Throwable $e) {
             $errors[] = "Experiment #{$id}: " . $e->getMessage();
         }
