@@ -71,9 +71,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
     exit;
 }
 
+// ── Save text content ─────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_text') {
+    $dir = get_home_media_path();
+    if (!is_dir($dir)) mkdir($dir, 0775, true);
+    $content = [
+        'name_en'    => trim($_POST['name_en']    ?? 'Tong Wu'),
+        'name_cn'    => trim($_POST['name_cn']    ?? '吴彤'),
+        'tagline_en' => trim($_POST['tagline_en'] ?? ''),
+        'tagline_cn' => trim($_POST['tagline_cn'] ?? ''),
+    ];
+    file_put_contents($dir . '/content.json', json_encode($content, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    header('Location: /admin/home-media.php?saved=1');
+    exit;
+}
+
 $media = list_home_media();
 $img_exts = ['jpg','jpeg','png','webp','gif'];
 $vid_exts = ['mp4','mov','webm'];
+
+// Load existing text content
+$home_content_path = get_home_media_path() . '/content.json';
+$home_text = file_exists($home_content_path) ? (json_decode(file_get_contents($home_content_path), true) ?: []) : [];
+
 function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 ?>
 <!DOCTYPE html>
@@ -158,6 +178,45 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
         <p class="hint">Allowed: jpg, png, webp, gif, mp4, mov, webm — multiple files supported</p>
     </form>
 </div>
+
+<!-- ── Text content ──────────────────────────────────────────── -->
+<form method="POST" style="max-width:700px">
+<input type="hidden" name="action" value="save_text">
+<?php if (isset($_GET['saved'])): ?>
+<p style="color:#155724;font-size:0.85rem;margin-bottom:0.75rem">Saved successfully.</p>
+<?php endif; ?>
+<div class="group">
+    <div class="group-title">Hero Text</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Name (EN)</label>
+            <input type="text" name="name_en" value="<?= hv($home_text['name_en'] ?? 'Tong Wu') ?>"
+                   style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit">
+        </div>
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Name (中文)</label>
+            <input type="text" name="name_cn" value="<?= hv($home_text['name_cn'] ?? '吴彤') ?>"
+                   style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit">
+        </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Tagline (EN)</label>
+            <textarea name="tagline_en" rows="3"
+                      style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit;resize:vertical"
+                      placeholder="Interactive Artist&#10;Creative Technologist"><?= hv($home_text['tagline_en'] ?? "Interactive Artist\nCreative Technologist") ?></textarea>
+            <p class="hint">Use a new line to create a line break.</p>
+        </div>
+        <div>
+            <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Tagline (中文)</label>
+            <textarea name="tagline_cn" rows="3"
+                      style="width:100%;padding:0.4rem 0.6rem;border:1px solid #ccc;font-size:0.88rem;font-family:inherit;resize:vertical"
+                      placeholder="交互艺术家&#10;创意技术研究者"><?= hv($home_text['tagline_cn'] ?? "交互艺术家\n创意技术研究者") ?></textarea>
+        </div>
+    </div>
+</div>
+<button type="submit" style="padding:0.5rem 1.4rem;background:#222;color:#fff;border:none;font-size:0.9rem;cursor:pointer;font-family:inherit;margin-bottom:2rem">Save Text</button>
+</form>
 
 <script>
 (function () {

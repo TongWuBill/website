@@ -6,6 +6,13 @@ $all = get_all_projects();
 $selected_slugs = ['beyond-pitaya', 'bodily-nature', 'tidal-vile', 'rice-journey', 'gestural-resonance'];
 $selected = array_filter($all, fn($p) => in_array($p['slug'], $selected_slugs));
 
+// Load home text content (gitignored, production-only)
+$home_content_path = get_home_media_path() . '/content.json';
+$home_text = file_exists($home_content_path) ? (json_decode(file_get_contents($home_content_path), true) ?: []) : [];
+$lang = get_lang();
+$home_name    = $lang === 'cn' && !empty($home_text['name_cn'])    ? $home_text['name_cn']    : ($home_text['name_en']    ?? 'Tong Wu');
+$home_tagline = $lang === 'cn' && !empty($home_text['tagline_cn']) ? $home_text['tagline_cn'] : ($home_text['tagline_en'] ?? "Interactive Artist\nCreative Technologist");
+
 render_header('Tong Wu');
 ?>
 
@@ -22,8 +29,8 @@ render_header('Tong Wu');
     <?php endif; ?>
   </div>
   <div class="home-hero-text">
-    <h1 class="home-name">Tong Wu</h1>
-    <p class="home-tagline">Interactive Artist<br>Creative Technologist</p>
+    <h1 class="home-name"><?= htmlspecialchars($home_name) ?></h1>
+    <p class="home-tagline"><?= nl2br(htmlspecialchars($home_tagline)) ?></p>
   </div>
 </section>
 
