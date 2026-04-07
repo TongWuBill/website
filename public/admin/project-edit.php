@@ -105,6 +105,23 @@ function upload_one(string $slug, string $dest_name, string $tmp, string $orig_n
     return ['url' => $rel, 'name' => basename($dest), 'ext' => $ext];
 }
 
+// ── Temporary debug endpoint ──────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'debug_upload') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'post'  => $_POST,
+        'files_keys' => array_keys($_FILES),
+        'media_name' => $_FILES['media']['name'] ?? 'MISSING',
+        'media_count' => is_array($_FILES['media']['name'] ?? null) ? count($_FILES['media']['name']) : 1,
+        'php_ini' => [
+            'max_file_uploads' => ini_get('max_file_uploads'),
+            'post_max_size'    => ini_get('post_max_size'),
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+        ],
+    ]);
+    exit;
+}
+
 // Normalize $_FILES['media'] into a flat array of entries
 function normalize_files(): array {
     $f = $_FILES['media'] ?? [];
