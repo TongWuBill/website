@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lang.php';
+require_once __DIR__ . '/media.php';
 
 function get_all_projects() {
     $db = get_db();
@@ -149,7 +150,7 @@ function render_header($title = '') {
 }
 
 function render_footer() {
-    $home_text   = function_exists('get_home_text') ? get_home_text() : [];
+    $home_text   = get_home_text();
     $lang        = get_lang();
     $footer_copy = ($lang === 'cn' && !empty($home_text['footer_cn']))
         ? $home_text['footer_cn']
