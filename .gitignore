@@ -3,6 +3,9 @@ database/portfolio.sqlite
 database/portfolio.sqlite-shm
 database/portfolio.sqlite-wal
 
+# User-uploaded media — lives on each server independently
+public/uploads/
+
 # Local dev / system files
 .DS_Store
 Thumbs.db
