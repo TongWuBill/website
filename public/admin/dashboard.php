@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../src/experiment-model.php';
 require_login();
 
 $tab = $_GET['tab'] ?? 'system';
-if (!in_array($tab, ['system', 'projects', 'experiments'])) $tab = 'system';
+if (!in_array($tab, ['system', 'projects', 'ai', 'lab', 'experiments'])) $tab = 'system';
 
 // ══════════════════════════════════════════════════════════════
 // SYSTEM TAB — data
@@ -96,14 +96,18 @@ $needs_migration = !empty(array_diff(array_keys($required_columns), $col_names))
 $sys_healthy = $db_exists && $db_readable && $db_writable && $dir_writable && $sqlite_write_ok && !$needs_migration;
 
 // ══════════════════════════════════════════════════════════════
-// PROJECTS TAB — data
+// PROJECTS TAB — data (excludes category=ai)
 // ══════════════════════════════════════════════════════════════
-$projects = ($tab === 'projects') ? get_all_projects_admin() : [];
+$all_admin_projects = ($tab === 'projects' || $tab === 'ai') ? get_all_projects_admin() : [];
+$projects    = array_values(array_filter($all_admin_projects, fn($p) => ($p['category'] ?? '') !== 'ai'));
+$ai_projects = array_values(array_filter($all_admin_projects, fn($p) => ($p['category'] ?? '') === 'ai'));
 
 // ══════════════════════════════════════════════════════════════
-// EXPERIMENTS TAB — data
+// EXPERIMENTS TAB — data (excludes category=lab)
 // ══════════════════════════════════════════════════════════════
-$all_experiments = ($tab === 'experiments') ? get_all_experiments() : [];
+$all_exps        = ($tab === 'experiments' || $tab === 'lab') ? get_all_experiments() : [];
+$all_experiments = array_values(array_filter($all_exps, fn($e) => ($e['category'] ?? '') !== 'lab'));
+$lab_experiments = array_values(array_filter($all_exps, fn($e) => ($e['category'] ?? '') === 'lab'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -205,7 +209,9 @@ $all_experiments = ($tab === 'experiments') ? get_all_experiments() : [];
     <a href="/admin/dashboard.php" class="topnav-brand">Admin</a>
     <div class="topnav-right">
         <a href="/admin/dashboard.php?tab=system"      class="tab-btn <?= $tab==='system'      ? 'active':'' ?>">System</a>
-        <a href="/admin/dashboard.php?tab=projects"    class="tab-btn <?= $tab==='projects'    ? 'active':'' ?>">Projects</a>
+        <a href="/admin/dashboard.php?tab=projects"    class="tab-btn <?= $tab==='projects'    ? 'active':'' ?>">Work</a>
+        <a href="/admin/dashboard.php?tab=ai"          class="tab-btn <?= $tab==='ai'          ? 'active':'' ?>">AI</a>
+        <a href="/admin/dashboard.php?tab=lab"         class="tab-btn <?= $tab==='lab'         ? 'active':'' ?>">Lab</a>
         <a href="/admin/dashboard.php?tab=experiments" class="tab-btn <?= $tab==='experiments' ? 'active':'' ?>">Experiments</a>
         <a href="/admin/home-media.php"                class="tab-btn">Home</a>
         <a href="/admin/about.php"                     class="tab-btn">About</a>
@@ -314,10 +320,10 @@ $all_experiments = ($tab === 'experiments') ? get_all_experiments() : [];
     </form>
 </div>
 
-<?php /* ════════════════ PROJECTS TAB ════════════════ */ elseif ($tab === 'projects'): ?>
+<?php /* ════════════════ PROJECTS (WORK) TAB ════════════════ */ elseif ($tab === 'projects'): ?>
 
 <div class="section-head">
-    <h1>Projects</h1>
+    <h1>Work</h1>
     <div class="section-head-right">
         <span id="reorder-status"></span>
         <a href="/admin/project-create.php" class="btn btn-primary">+ New Project</a>
@@ -413,6 +419,82 @@ $all_experiments = ($tab === 'experiments') ? get_all_experiments() : [];
     }
 }());
 </script>
+
+<?php /* ════════════════ AI TAB ════════════════ */ elseif ($tab === 'ai'): ?>
+
+<div class="section-head">
+    <h1>AI</h1>
+    <div class="section-head-right">
+        <span id="reorder-status"></span>
+        <a href="/admin/project-create.php?category=ai" class="btn btn-primary">+ New AI Project</a>
+    </div>
+</div>
+
+<?php if (empty($ai_projects)): ?>
+    <p style="color:#888;font-size:0.9rem">No AI projects yet.</p>
+<?php else: ?>
+    <p class="drag-hint">Drag rows to reorder — saves automatically.</p>
+    <p style="font-size:0.78rem;color:#aaa;margin-bottom:0.6rem"><?= count($ai_projects) ?> projects</p>
+    <table>
+        <thead><tr>
+            <th style="width:32px">#</th><th>Title</th><th>Year</th><th>Published</th><th>Updated</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+            <?php foreach ($ai_projects as $p): ?>
+            <tr draggable="true" data-id="<?= (int)$p['id'] ?>">
+                <td style="color:#aaa"><?= str_pad((int)($p['sort_order'] ?? 0), 2, '0', STR_PAD_LEFT) ?></td>
+                <td><?= htmlspecialchars($p['title']) ?></td>
+                <td><?= htmlspecialchars($p['year'] ?? '—') ?></td>
+                <td><?= !empty($p['is_published']) ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">No</span>' ?></td>
+                <td style="color:#888"><?= htmlspecialchars($p['updated_at'] ?? '—') ?></td>
+                <td><div class="actions">
+                    <a href="/admin/project-edit.php?id=<?= (int)$p['id'] ?>" class="btn">Edit</a>
+                    <a href="/admin/project-delete.php?id=<?= (int)$p['id'] ?>" class="btn btn-danger">Delete</a>
+                </div></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
+
+<?php /* ════════════════ LAB TAB ════════════════ */ elseif ($tab === 'lab'): ?>
+
+<div class="section-head">
+    <h1>Lab</h1>
+    <div class="section-head-right">
+        <a href="/admin/experiment-create.php?category=lab" class="btn btn-primary">+ New Lab Item</a>
+    </div>
+</div>
+
+<?php if (empty($lab_experiments)): ?>
+    <p style="color:#888;font-size:0.9rem">No lab items yet.</p>
+<?php else: ?>
+    <p style="font-size:0.78rem;color:#aaa;margin-bottom:0.6rem"><?= count($lab_experiments) ?> items</p>
+    <table>
+        <thead><tr>
+            <th style="width:64px">Media</th><th>Title</th><th>Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+            <?php foreach ($lab_experiments as $e):
+                $media = list_experiment_media((int)$e['id']);
+                $thumb = null;
+                foreach ($media as $f) {
+                    if (in_array($f['ext'], ['jpg','jpeg','png','webp','gif'])) { $thumb = $f; break; }
+                }
+            ?>
+            <tr>
+                <td><?php if ($thumb): ?><img class="thumb" src="<?= htmlspecialchars($thumb['url']) ?>" alt=""><?php else: ?><div class="thumb-placeholder"></div><?php endif; ?></td>
+                <td><?= htmlspecialchars($e['title']) ?></td>
+                <td><?= htmlspecialchars($e['date'] ?? '—') ?></td>
+                <td><div class="actions">
+                    <a href="/admin/experiment-edit.php?id=<?= (int)$e['id'] ?>" class="btn">Edit</a>
+                    <a href="/admin/experiment-delete.php?id=<?= (int)$e['id'] ?>" class="btn btn-danger">Delete</a>
+                </div></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>
 
 <?php /* ════════════════ EXPERIMENTS TAB ════════════════ */ elseif ($tab === 'experiments'): ?>
 

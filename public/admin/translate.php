@@ -69,17 +69,15 @@ if (!$dry_run) {
     projects_ensure_cn_columns();
     experiments_ensure_table();
 
-    // ── Projects ─────────────────────────────────────────────────────────────
-    $projects = $db->query("SELECT id, title, subtitle, sections, title_cn, subtitle_cn, sections_cn FROM projects")->fetchAll(PDO::FETCH_ASSOC);
+    // ── Projects — only untranslated ─────────────────────────────────────────
+    $projects = $db->query("SELECT id, title, subtitle, sections, title_cn, subtitle_cn, sections_cn FROM projects WHERE (title_cn IS NULL OR title_cn = '')")->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($projects as $p) {
         $id = (int)$p['id'];
         try {
-            // Title + subtitle in one call
             $texts = [$p['title'], $p['subtitle'] ?? ''];
             [$title_cn, $subtitle_cn] = deepl_translate($texts);
 
-            // Sections
             $sections_cn = null;
             if (!empty($p['sections'])) {
                 $secs = json_decode($p['sections'], true);
@@ -91,10 +89,7 @@ if (!$dry_run) {
                     $n      = count($labels);
                     $cn_secs = [];
                     for ($i = 0; $i < $n; $i++) {
-                        $cn_secs[] = [
-                            'label' => $trans[$i],
-                            'body'  => $trans[$i + $n],
-                        ];
+                        $cn_secs[] = ['label' => $trans[$i], 'body' => $trans[$i + $n]];
                     }
                     $sections_cn = json_encode($cn_secs, JSON_UNESCAPED_UNICODE);
                 }
@@ -109,9 +104,9 @@ if (!$dry_run) {
         }
     }
 
-    // ── Experiments ──────────────────────────────────────────────────────────
+    // ── Experiments — only untranslated ──────────────────────────────────────
     experiments_ensure_table();
-    $exps = $db->query("SELECT id, title, description FROM experiments")->fetchAll(PDO::FETCH_ASSOC);
+    $exps = $db->query("SELECT id, title, description FROM experiments WHERE (title_cn IS NULL OR title_cn = '')")->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($exps as $e) {
         $id = (int)$e['id'];
@@ -128,12 +123,14 @@ if (!$dry_run) {
         }
     }
 } else {
-    // Dry run — just count what will be translated
+    // Dry run — show only untranslated items
     $db = get_db();
     projects_ensure_cn_columns();
     experiments_ensure_table();
-    $projects = $db->query("SELECT id, title FROM projects")->fetchAll(PDO::FETCH_ASSOC);
-    $exps     = $db->query("SELECT id, title FROM experiments")->fetchAll(PDO::FETCH_ASSOC);
+    $projects      = $db->query("SELECT id, title FROM projects WHERE (title_cn IS NULL OR title_cn = '')")->fetchAll(PDO::FETCH_ASSOC);
+    $exps          = $db->query("SELECT id, title FROM experiments WHERE (title_cn IS NULL OR title_cn = '')")->fetchAll(PDO::FETCH_ASSOC);
+    $skip_projects = (int)$db->query("SELECT COUNT(*) FROM projects WHERE (title_cn IS NOT NULL AND title_cn != '')")->fetchColumn();
+    $skip_exps     = (int)$db->query("SELECT COUNT(*) FROM experiments WHERE (title_cn IS NOT NULL AND title_cn != '')")->fetchColumn();
 }
 ?>
 <!DOCTYPE html>
@@ -171,23 +168,31 @@ if (!$dry_run) {
 
 <div class="card">
     <h2>What will be translated</h2>
-    <p class="note">This will call the DeepL API to translate all project and experiment content into Chinese, and save it to the <code>_cn</code> fields in the database. Existing CN content will be <strong>overwritten</strong>.</p>
+    <p class="note">Translates only items with <strong>no existing CN translation</strong> — already-translated content is skipped and preserved.</p>
     <div class="warn">⚠ This runs on the <strong>current database</strong>. Make sure you're running this on production, not local.</div>
 
-    <p class="note"><strong><?= count($projects) ?> projects</strong> to translate (title, subtitle, all sections):</p>
+    <p class="note"><strong><?= count($projects) ?> projects</strong> to translate<?php if ($skip_projects): ?> <span style="color:#aaa">(<?= $skip_projects ?> already translated, skipped)</span><?php endif; ?>:</p>
+    <?php if (empty($projects)): ?>
+    <p style="color:#888;font-size:0.85rem">All projects already have CN translations.</p>
+    <?php else: ?>
     <div class="item-list">
         <?php foreach ($projects as $p): ?>
         <div>— <?= htmlspecialchars($p['title']) ?> <span style="color:#bbb">(#<?= $p['id'] ?>)</span></div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 
     <br>
-    <p class="note"><strong><?= count($exps) ?> experiments</strong> to translate (title, description):</p>
+    <p class="note"><strong><?= count($exps) ?> experiments</strong> to translate<?php if ($skip_exps): ?> <span style="color:#aaa">(<?= $skip_exps ?> already translated, skipped)</span><?php endif; ?>:</p>
+    <?php if (empty($exps)): ?>
+    <p style="color:#888;font-size:0.85rem">All experiments already have CN translations.</p>
+    <?php else: ?>
     <div class="item-list">
         <?php foreach ($exps as $e): ?>
         <div>— <?= htmlspecialchars($e['title']) ?> <span style="color:#bbb">(#<?= $e['id'] ?>)</span></div>
         <?php endforeach; ?>
     </div>
+    <?php endif; ?>
 </div>
 
 <form method="POST">

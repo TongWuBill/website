@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../src/experiment-model.php';
 require_login();
 
 $errors = [];
-$fields = ['title' => '', 'category' => '', 'date' => '', 'description' => '', 'video_url' => ''];
+$fields = ['title' => '', 'category' => $_GET['category'] ?? '', 'date' => '', 'description' => '', 'video_url' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($fields as $key => $_) {
