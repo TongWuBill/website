@@ -28,6 +28,14 @@ switch ($uri) {
         require __DIR__ . '/projects.php';
         break;
 
+    case '/ai':
+        require __DIR__ . '/ai.php';
+        break;
+
+    case '/lab':
+        require __DIR__ . '/lab.php';
+        break;
+
     case '/experiments':
         require __DIR__ . '/experiments.php';
         break;

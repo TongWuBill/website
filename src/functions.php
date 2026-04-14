@@ -5,7 +5,14 @@ require_once __DIR__ . '/lang.php';
 
 function get_all_projects() {
     $db = get_db();
-    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 ORDER BY sort_order DESC");
+    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 AND (category IS NULL OR category != 'ai') ORDER BY sort_order DESC");
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+function get_projects_by_category(string $cat): array {
+    $db = get_db();
+    $stmt = $db->prepare("SELECT * FROM projects WHERE is_published = 1 AND category = ? ORDER BY sort_order DESC");
+    $stmt->execute([$cat]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -141,6 +148,8 @@ function render_header($title = '') {
             <div class="nav-links">
                 <a href="/"><?= t('nav.home') ?></a>
                 <a href="/work"><?= t('nav.work') ?></a>
+                <a href="/ai"><?= t('nav.ai') ?></a>
+                <a href="/lab"><?= t('nav.lab') ?></a>
                 <a href="/experiments"><?= t('nav.experiments') ?></a>
                 <a href="/about"><?= t('nav.about') ?></a>
             </div>

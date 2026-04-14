@@ -43,8 +43,16 @@ function get_all_experiments(): array {
               ->fetchAll(PDO::FETCH_ASSOC);
 }
 
+function get_all_experiments_by_category(string $cat): array {
+    experiments_ensure_table();
+    $db = get_db();
+    $stmt = $db->prepare("SELECT * FROM experiments WHERE category = ? ORDER BY date DESC");
+    $stmt->execute([$cat]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 function get_experiments_grouped(): array {
-    $rows = get_all_experiments();
+    $rows = array_values(array_filter(get_all_experiments(), fn($r) => $r['category'] !== 'lab'));
     $groups = [];
     foreach ($rows as $r) {
         $cat = $r['category'] ?: 'Uncategorised';

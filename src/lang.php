@@ -39,6 +39,8 @@ function _lang_strings(): array {
             // Nav
             'nav.home'        => 'Home',
             'nav.work'        => 'Work',
+            'nav.ai'          => 'AI',
+            'nav.lab'         => 'Lab',
             'nav.experiments' => 'Experiments',
             'nav.about'       => 'About',
 
@@ -92,6 +94,16 @@ function _lang_strings(): array {
             'work.heading'    => 'Work',
             'work.subtitle'   => 'Explorations in interactive systems, media, and perception.',
 
+            // AI page
+            'ai.page_title' => 'AI — Tong Wu',
+            'ai.heading'    => 'AI',
+            'ai.subtitle'   => 'Projects at the intersection of generative models, workflows, and machine perception.',
+
+            // Lab page
+            'lab.page_title' => 'Lab — Tong Wu',
+            'lab.heading'    => 'Lab',
+            'lab.subtitle'   => 'Prototypes, fabrication, and material experiments.',
+
             // Experiments page
             'experiments.page_title' => 'Experiments — Tong Wu',
             'experiments.heading'    => 'Experiments',
@@ -110,6 +122,8 @@ function _lang_strings(): array {
             // Nav
             'nav.home'        => '首页',
             'nav.work'        => '作品',
+            'nav.ai'          => 'AI',
+            'nav.lab'         => 'Lab',
             'nav.experiments' => '实验',
             'nav.about'       => '关于',
 
@@ -162,6 +176,16 @@ function _lang_strings(): array {
             'work.page_title' => '作品 — 吴彤',
             'work.heading'    => '作品',
             'work.subtitle'   => '探索交互系统、媒体与感知的创作实践。',
+
+            // AI page
+            'ai.page_title' => 'AI — 吴彤',
+            'ai.heading'    => 'AI',
+            'ai.subtitle'   => '以生成模型、工作流程与机器感知为核心的创作项目。',
+
+            // Lab page
+            'lab.page_title' => 'Lab — 吴彤',
+            'lab.heading'    => 'Lab',
+            'lab.subtitle'   => '原型制作、数字制造与材料实验。',
 
             // Experiments page
             'experiments.page_title' => '实验 — 吴彤',
