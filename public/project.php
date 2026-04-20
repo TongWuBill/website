@@ -147,7 +147,7 @@ function render_any_file(array $f, string $cls = ''): void {
            . '<a class="media-doc-dl" href="' . $url . '" download>Download</a>'
            . '</div>';
     } elseif (in_array($ext, ['html','htm'])) {
-        echo '<div class="media-html-wrap"><iframe class="' . $cls . '" src="' . $url . '" title="' . $name . '" sandbox="allow-scripts allow-same-origin"></iframe></div>';
+        echo '<div class="media-html-wrap"><iframe class="' . $cls . '" src="' . $url . '" title="' . $name . '" sandbox="allow-scripts allow-same-origin allow-downloads"></iframe></div>';
     }
 }
 
@@ -167,7 +167,7 @@ render_header(tdb($project['title_cn'] ?? null, $project['title']));
     <?php elseif (in_array($hero_file['ext'], ['html','htm'])): ?>
       <iframe class="pd-hero-html"
               src="<?= htmlspecialchars($hero_file['url']) ?>"
-              sandbox="allow-scripts allow-same-origin"
+              sandbox="allow-scripts allow-same-origin allow-downloads"
               scrolling="no"></iframe>
     <?php else: ?>
       <img class="pd-hero-img"
