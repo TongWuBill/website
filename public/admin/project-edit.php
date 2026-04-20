@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
             $data['sections_cn'] = $project['sections_cn'] ?? null;
         }
         update_project($id, $data);
-        header('Location: /admin/dashboard.php?tab=projects');
+        header('Location: /admin/project-edit.php?id=' . $id . '&saved=1');
         exit;
     }
 }
@@ -344,6 +344,8 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         .media-del:hover { background: #c00; }
         .upload-error { background: #fee; border: 1px solid #f99; color: #c00; padding: 0.6rem 1rem;
                         font-size: 0.82rem; max-width: 800px; margin-bottom: 1rem; word-break: break-all; }
+        .upload-success { background: #f0fff4; border: 1px solid #6ee7b7; color: #065f46; padding: 0.6rem 1rem;
+                          font-size: 0.82rem; max-width: 800px; margin-bottom: 1rem; }
         .upload-error strong { display: block; margin-bottom: 0.25rem; font-size: 0.75rem;
                                text-transform: uppercase; letter-spacing: .08em; }
         .upload-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -405,6 +407,9 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
     <strong>Upload failed</strong>
     <?= htmlspecialchars($_GET['upload_error']) ?>
 </div>
+<?php endif; ?>
+<?php if (isset($_GET['saved'])): ?>
+<div class="upload-success">Saved.</div>
 <?php endif; ?>
 
 <div class="page-tabs">
