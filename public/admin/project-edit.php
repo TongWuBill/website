@@ -48,7 +48,7 @@ function section_key(string $label): string {
 function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? '')); }
 
-$allowed_exts = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf','txt','doc','docx'];
+$allowed_exts = ['jpg','jpeg','png','webp','gif','mp4','mov','webm','pdf','txt','doc','docx','html','htm'];
 
 // ── Upload error helper ───────────────────────────────────────
 function upload_error_msg(int $code): string {
@@ -245,7 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
 
 // ── Build media buckets ───────────────────────────────────────
 $all_media    = list_project_media($project['slug']);
-$media_exts   = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx'];
+$media_exts   = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx','html','htm'];
 $img_exts     = ['jpg','jpeg','png','webp','gif'];
 
 $section_keys  = array_map(fn($s) => section_key($s['label']), $sections_data);
@@ -448,7 +448,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <form class="ajax-upload" data-action="upload_hero" data-grid="hero-grid" data-replace="true" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_hero">
             <div class="upload-row">
-                <input type="file" name="media[]" accept="image/*,video/*">
+                <input type="file" name="media[]" accept="image/*,video/*,text/html,.html,.htm">
                 <button type="submit" class="upload-btn">Upload hero</button>
                 <span class="upload-status"></span>
             </div>
@@ -498,7 +498,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <form class="ajax-upload" data-action="upload_thumbnail" data-grid="thumb-grid" data-replace="true" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_thumbnail">
             <div class="upload-row">
-                <input type="file" name="media[]" accept="image/*,video/*">
+                <input type="file" name="media[]" accept="image/*,video/*,text/html,.html,.htm">
                 <button type="submit" class="upload-btn">Upload thumbnail</button>
                 <span class="upload-status"></span>
             </div>
@@ -570,7 +570,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
                             <input type="hidden" name="action" value="upload_section">
                             <input type="hidden" name="sec_key" value="<?= hv($key) ?>">
                             <div class="upload-row">
-                                <input type="file" name="media[]" accept="image/*,video/*" multiple>
+                                <input type="file" name="media[]" accept="image/*,video/*,text/html,.html,.htm" multiple>
                                 <button type="submit" class="upload-btn">Upload</button>
                                 <span class="upload-status"></span>
                             </div>
@@ -621,7 +621,7 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
         <form class="ajax-upload" data-action="upload_gallery" data-grid="gallery-grid" enctype="multipart/form-data">
             <input type="hidden" name="action" value="upload_gallery">
             <div class="upload-row">
-                <input type="file" name="media[]" accept="image/*,video/*" multiple>
+                <input type="file" name="media[]" accept="image/*,video/*,text/html,.html,.htm" multiple>
                 <button type="submit" class="upload-btn">Upload to gallery</button>
                 <span class="upload-status"></span>
             </div>

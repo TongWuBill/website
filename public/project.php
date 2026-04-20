@@ -13,7 +13,7 @@ if (!$project) {
 
 // ── Media bucketing ───────────────────────────────────────────
 $all_media  = list_project_media($project['slug']);
-$media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx'];
+$media_exts = ['jpg','jpeg','png','webp','gif','mp4','webm','mov','pdf','txt','doc','docx','html','htm'];
 $img_exts   = ['jpg','jpeg','png','webp','gif'];
 $vid_exts   = ['mp4','webm','mov'];
 
@@ -146,6 +146,8 @@ function render_any_file(array $f, string $cls = ''): void {
            . '<span class="media-doc-name">' . $name . '</span>'
            . '<a class="media-doc-dl" href="' . $url . '" download>Download</a>'
            . '</div>';
+    } elseif (in_array($ext, ['html','htm'])) {
+        echo '<div class="media-html-wrap"><iframe class="' . $cls . '" src="' . $url . '" title="' . $name . '" sandbox="allow-scripts allow-same-origin"></iframe></div>';
     }
 }
 
@@ -162,6 +164,11 @@ render_header(tdb($project['title_cn'] ?? null, $project['title']));
     <?php if (in_array($hero_file['ext'], $vid_exts)): ?>
       <video class="pd-hero-vid" src="<?= htmlspecialchars($hero_file['url']) ?>"
              autoplay muted loop playsinline></video>
+    <?php elseif (in_array($hero_file['ext'], ['html','htm'])): ?>
+      <iframe class="pd-hero-html"
+              src="<?= htmlspecialchars($hero_file['url']) ?>"
+              sandbox="allow-scripts allow-same-origin"
+              scrolling="no"></iframe>
     <?php else: ?>
       <img class="pd-hero-img"
            src="<?= htmlspecialchars($hero_file['url']) ?>"
