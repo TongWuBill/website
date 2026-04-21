@@ -116,7 +116,7 @@ void main(){
   vec2 uv=(fc-0.5*r)/MN;
   vec2 d=uv-uFinger;
   float dist=length(d);
-  float falloff=exp(-dist*dist*56.0)*uPresence;
+  float falloff=exp(-dist*dist*18.67)*uPresence;
   float angle=uStirAngle*falloff*uTouch;
   float ca=cos(angle),sa=sin(angle);
   float scale=1.0+uStirScale*falloff*uTouch;
@@ -163,7 +163,7 @@ void main(){
   col*=1.0-inkSpots*uGrain*0.15;
   float paper=noise(grainUV*300.0)*0.04*uGrain;
   col+=vec3(paper);
-  float dyeAmt=exp(-dist*dist*56.0)*uPresence*0.25;
+  float dyeAmt=exp(-dist*dist*18.67)*uPresence*0.25;
   col=pigmentMix(col,uCorePal[0]*0.6+uCorePal[1]*0.4,dyeAmt);
   col=pow(clamp(col,0.0,1.0),vec3(0.85));
   gl_FragColor=vec4(col,1.0);
