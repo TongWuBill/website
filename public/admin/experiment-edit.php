@@ -17,6 +17,7 @@ $errors = [];
 $fields = [
     'title'          => $exp['title']          ?? '',
     'category'       => $exp['category']       ?? '',
+    'page_section'   => $exp['page_section']   ?? 'experiments',
     'date'           => $exp['date']           ?? '',
     'description'    => $exp['description']    ?? '',
     'video_url'      => $exp['video_url']      ?? '',
@@ -103,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     if (empty($errors)) {
         update_experiment($id, $fields);
-        header('Location: /admin/dashboard.php?tab=experiments');
+        header('Location: /admin/experiment-edit.php?id=' . $id . '&saved=1');
         exit;
     }
 }
@@ -181,7 +182,15 @@ function iv(string $key, array $arr): string { return hv((string)($arr[$key] ?? 
     </div>
 
     <div class="field">
-        <label>Category</label>
+        <label>Page / Section</label>
+        <select name="page_section" style="width:100%;padding:0.45rem 0.6rem;border:1px solid #ccc;font-size:0.9rem;background:#fff;">
+            <option value="experiments"<?= ($fields['page_section'] ?? 'experiments') === 'experiments' ? ' selected' : '' ?>>Experiments</option>
+            <option value="lab"<?= ($fields['page_section'] ?? '') === 'lab' ? ' selected' : '' ?>>Lab</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Category <span style="font-weight:400;color:#aaa;font-size:0.75rem">— free text tag</span></label>
         <input type="text" name="category" value="<?= iv('category', $fields) ?>" placeholder="e.g. Sound Studies">
     </div>
 

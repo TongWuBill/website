@@ -106,8 +106,8 @@ $ai_projects = array_values(array_filter($all_admin_projects, fn($p) => ($p['pag
 // EXPERIMENTS TAB — data (excludes category=lab)
 // ══════════════════════════════════════════════════════════════
 $all_exps        = ($tab === 'experiments' || $tab === 'lab') ? get_all_experiments() : [];
-$all_experiments = array_values(array_filter($all_exps, fn($e) => ($e['category'] ?? '') !== 'lab'));
-$lab_experiments = array_values(array_filter($all_exps, fn($e) => ($e['category'] ?? '') === 'lab'));
+$all_experiments = array_values(array_filter($all_exps, fn($e) => ($e['page_section'] ?? 'experiments') !== 'lab'));
+$lab_experiments = array_values(array_filter($all_exps, fn($e) => ($e['page_section'] ?? 'experiments') === 'lab'));
 ?>
 <!DOCTYPE html>
 <html lang="en">

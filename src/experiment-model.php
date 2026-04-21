@@ -33,6 +33,11 @@ function experiments_ensure_table(): void {
     if (!in_array('description_cn', $cols)) {
         $db->exec("ALTER TABLE experiments ADD COLUMN description_cn TEXT");
     }
+    if (!in_array('page_section', $cols)) {
+        $db->exec("ALTER TABLE experiments ADD COLUMN page_section TEXT");
+        $db->exec("UPDATE experiments SET page_section = 'lab' WHERE category = 'lab'");
+        $db->exec("UPDATE experiments SET page_section = 'experiments' WHERE page_section IS NULL");
+    }
 }
 
 // ── Queries ───────────────────────────────────────────────────
@@ -46,13 +51,13 @@ function get_all_experiments(): array {
 function get_all_experiments_by_category(string $cat): array {
     experiments_ensure_table();
     $db = get_db();
-    $stmt = $db->prepare("SELECT * FROM experiments WHERE category = ? ORDER BY date DESC");
+    $stmt = $db->prepare("SELECT * FROM experiments WHERE page_section = ? ORDER BY date DESC");
     $stmt->execute([$cat]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function get_experiments_grouped(): array {
-    $rows = array_values(array_filter(get_all_experiments(), fn($r) => $r['category'] !== 'lab'));
+    $rows = array_values(array_filter(get_all_experiments(), fn($r) => ($r['page_section'] ?? 'experiments') !== 'lab'));
     $groups = [];
     foreach ($rows as $r) {
         $cat = $r['category'] ?: 'Uncategorised';
@@ -82,12 +87,13 @@ function create_experiment(array $data): int {
     $next_sort = (int) $db->query("SELECT COALESCE(MAX(sort_order),0) FROM experiments")->fetchColumn() + 1;
 
     $stmt = $db->prepare("
-        INSERT INTO experiments (title, category, date, description, video_url, title_cn, description_cn, sort_order, created_at, updated_at)
-        VALUES (:title, :category, :date, :description, :video_url, :title_cn, :description_cn, :sort_order, :created_at, :updated_at)
+        INSERT INTO experiments (title, category, page_section, date, description, video_url, title_cn, description_cn, sort_order, created_at, updated_at)
+        VALUES (:title, :category, :page_section, :date, :description, :video_url, :title_cn, :description_cn, :sort_order, :created_at, :updated_at)
     ");
     $stmt->execute([
         ':title'          => $data['title'],
         ':category'       => $data['category']       ?? null,
+        ':page_section'   => $data['page_section']   ?? 'experiments',
         ':date'           => $data['date']            ?? null,
         ':description'    => $data['description']     ?? null,
         ':video_url'      => $data['video_url']       ?? null,
@@ -109,6 +115,7 @@ function update_experiment(int $id, array $data): void {
         UPDATE experiments SET
             title          = :title,
             category       = :category,
+            page_section   = :page_section,
             date           = :date,
             description    = :description,
             video_url      = :video_url,
@@ -120,6 +127,7 @@ function update_experiment(int $id, array $data): void {
     $stmt->execute([
         ':title'          => $data['title'],
         ':category'       => $data['category']       ?? null,
+        ':page_section'   => $data['page_section']   ?? 'experiments',
         ':date'           => $data['date']            ?? null,
         ':description'    => $data['description']     ?? null,
         ':video_url'      => $data['video_url']       ?? null,
