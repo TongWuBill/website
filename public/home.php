@@ -284,12 +284,11 @@ void main(){
 
     const vx = (fingerX - prevFx) / Math.max(dt, 0.001);
     const vy = (fingerY - prevFy) / Math.max(dt, 0.001);
-    const torque = (vx - vy) * 8.0;
-    stirOmega += (torque - 3.0 * stirAngle - 2.5 * stirOmega) * dt;
-    stirAngle += stirOmega * dt;
-    const scaleForce = Math.sqrt(vx*vx + vy*vy) * 4.0;
-    stirScaleOmega += (scaleForce - 5.0 * stirScale - 3.0 * stirScaleOmega) * dt;
-    stirScale += stirScaleOmega * dt;
+    // Base distortion always on when mouse is present; velocity adds direction
+    const baseAngle = presence * (1.0 + 0.4 * Math.sin(accT * 0.7)) + (vx - vy) * 0.3;
+    const baseScale = presence * 0.4 + Math.sqrt(vx*vx + vy*vy) * 0.03;
+    stirAngle = lerp(stirAngle, baseAngle, 1 - Math.pow(0.04, dt));
+    stirScale = lerp(stirScale, baseScale, 1 - Math.pow(0.04, dt));
     stirAngle = Math.max(-3, Math.min(3, stirAngle));
     stirScale = Math.max(-0.8, Math.min(0.8, stirScale));
 
