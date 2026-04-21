@@ -100,7 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_text') {
     $dir = get_home_media_path();
     if (!is_dir($dir)) mkdir($dir, 0775, true);
+    $hero_mode = in_array($_POST['hero_mode'] ?? '', ['webgl', 'slideshow']) ? $_POST['hero_mode'] : 'webgl';
     $content = [
+        'hero_mode'  => $hero_mode,
         'name_en'    => trim($_POST['name_en']    ?? 'Tong Wu'),
         'name_cn'    => trim($_POST['name_cn']    ?? '吴彤'),
         'tagline_en' => trim($_POST['tagline_en'] ?? ''),
@@ -253,6 +255,23 @@ function hv(string $v): string { return htmlspecialchars($v, ENT_QUOTES); }
 <?php endif; ?>
 <div class="group">
     <div class="group-title">Hero Text</div>
+
+    <?php $hero_mode = $home_text['hero_mode'] ?? 'webgl'; ?>
+    <div style="margin-bottom:1.25rem">
+        <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:0.5rem;font-weight:600">Hero Mode</label>
+        <div style="display:flex;gap:1.5rem">
+            <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.88rem;cursor:pointer">
+                <input type="radio" name="hero_mode" value="webgl" <?= $hero_mode === 'webgl' ? 'checked' : '' ?>>
+                Liquid Braids (WebGL)
+            </label>
+            <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.88rem;cursor:pointer">
+                <input type="radio" name="hero_mode" value="slideshow" <?= $hero_mode === 'slideshow' ? 'checked' : '' ?>>
+                Photo / Video Slideshow
+            </label>
+        </div>
+        <p class="hint" style="margin-top:0.4rem">Slideshow uses the Hero Images/Videos uploaded above.</p>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
         <div>
             <label style="font-size:0.78rem;color:#666;display:block;margin-bottom:4px">Name (EN)</label>
