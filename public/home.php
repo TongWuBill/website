@@ -251,11 +251,11 @@ void main(){
     { bg: [[0.03,0.06,0.15],[0.05,0.08,0.18]], cols: [[0.1,0.4,0.9],[0.2,0.75,1.0],[0.4,0.9,0.85],[0.85,0.95,1.0],[0.3,0.5,0.95],[0.65,0.9,1.0]] },
   ];
 
-  let palIdx = 0;
-  let curBg1 = palettes[0].bg[0].slice(), curBg2 = palettes[0].bg[1].slice();
-  let tgtBg1 = palettes[0].bg[0].slice(), tgtBg2 = palettes[0].bg[1].slice();
-  let curPal = palettes[0].cols.map(c => c.slice());
-  let tgtPal = palettes[0].cols.map(c => c.slice());
+  let palIdx = Math.floor(Math.random() * palettes.length);
+  let curBg1 = palettes[palIdx].bg[0].slice(), curBg2 = palettes[palIdx].bg[1].slice();
+  let tgtBg1 = palettes[palIdx].bg[0].slice(), tgtBg2 = palettes[palIdx].bg[1].slice();
+  let curPal = palettes[palIdx].cols.map(c => c.slice());
+  let tgtPal = palettes[palIdx].cols.map(c => c.slice());
 
   function shuffle() {
     palIdx = (palIdx + 1 + Math.floor(Math.random() * (palettes.length - 1))) % palettes.length;
