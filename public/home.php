@@ -50,8 +50,8 @@ $hero_images = $hero_mode === 'slideshow' ? list_home_media() : [];
 <?php elseif ($hero_mode === 'webgl'): ?>
 <script>
 (function(){
-  const STREAMS = 100;
-  const WIDTH   = 0.12;
+  const STREAMS = 9;
+  const WIDTH   = 0.21;
   const GRAIN   = 0;
   const TOUCH   = 0.5;
   const SPEED   = 0.8;
