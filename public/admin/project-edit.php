@@ -680,7 +680,6 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
             <select name="page_section" form="f-save">
                 <option value="work"<?= ($info['page_section'] ?? 'work') === 'work' ? ' selected' : '' ?>>Work</option>
                 <option value="ai"<?= ($info['page_section'] ?? '') === 'ai' ? ' selected' : '' ?>>AI</option>
-                <option value="lab"<?= ($info['page_section'] ?? '') === 'lab' ? ' selected' : '' ?>>Lab</option>
             </select>
         </div>
     </div>

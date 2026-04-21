@@ -11,7 +11,7 @@ $info = [
     'subtitle'     => '',
     'year'         => '',
     'category'     => '',
-    'page_section' => in_array($_get_cat, ['ai','lab']) ? $_get_cat : 'work',
+    'page_section' => $_get_cat === 'ai' ? 'ai' : 'work',
     'skillset'     => '',
     'material'     => '',
     'exhibition'   => '',
@@ -162,7 +162,6 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
             <select name="page_section" form="create-form">
                 <option value="work"<?= ($info['page_section'] ?? 'work') === 'work' ? ' selected' : '' ?>>Work</option>
                 <option value="ai"<?= ($info['page_section'] ?? '') === 'ai' ? ' selected' : '' ?>>AI</option>
-                <option value="lab"<?= ($info['page_section'] ?? '') === 'lab' ? ' selected' : '' ?>>Lab</option>
             </select>
         </div>
     </div>
