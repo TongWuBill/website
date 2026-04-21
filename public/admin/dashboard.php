@@ -99,8 +99,8 @@ $sys_healthy = $db_exists && $db_readable && $db_writable && $dir_writable && $s
 // PROJECTS TAB — data (excludes category=ai)
 // ══════════════════════════════════════════════════════════════
 $all_admin_projects = ($tab === 'projects' || $tab === 'ai') ? get_all_projects_admin() : [];
-$projects    = array_values(array_filter($all_admin_projects, fn($p) => ($p['category'] ?? '') !== 'ai'));
-$ai_projects = array_values(array_filter($all_admin_projects, fn($p) => ($p['category'] ?? '') === 'ai'));
+$projects    = array_values(array_filter($all_admin_projects, fn($p) => ($p['page_section'] ?? 'work') !== 'ai'));
+$ai_projects = array_values(array_filter($all_admin_projects, fn($p) => ($p['page_section'] ?? 'work') === 'ai'));
 
 // ══════════════════════════════════════════════════════════════
 // EXPERIMENTS TAB — data (excludes category=lab)

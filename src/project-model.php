@@ -19,6 +19,12 @@ function projects_ensure_cn_columns(): void {
     if (!in_array('title_cn', $cols))    $db->exec("ALTER TABLE projects ADD COLUMN title_cn TEXT");
     if (!in_array('subtitle_cn', $cols)) $db->exec("ALTER TABLE projects ADD COLUMN subtitle_cn TEXT");
     if (!in_array('sections_cn', $cols)) $db->exec("ALTER TABLE projects ADD COLUMN sections_cn TEXT");
+    if (!in_array('page_section', $cols)) {
+        $db->exec("ALTER TABLE projects ADD COLUMN page_section TEXT");
+        // Migrate: copy 'ai'/'lab' from category → page_section, rest → 'work'
+        $db->exec("UPDATE projects SET page_section = category WHERE category IN ('ai','lab')");
+        $db->exec("UPDATE projects SET page_section = 'work' WHERE page_section IS NULL");
+    }
     $done = true;
 }
 
@@ -46,10 +52,10 @@ function create_project(array $data): int {
 
     $stmt = $db->prepare("
         INSERT INTO projects (
-            title, slug, subtitle, year, category, skillset, material, exhibition, location,
+            title, slug, subtitle, year, category, page_section, skillset, material, exhibition, location,
             sections, video_url, title_cn, subtitle_cn, sections_cn, is_published, created_at, updated_at, sort_order
         ) VALUES (
-            :title, :slug, :subtitle, :year, :category, :skillset, :material, :exhibition, :location,
+            :title, :slug, :subtitle, :year, :category, :page_section, :skillset, :material, :exhibition, :location,
             :sections, :video_url, :title_cn, :subtitle_cn, :sections_cn, :is_published, :created_at, :updated_at, :sort_order
         )
     ");
@@ -60,6 +66,7 @@ function create_project(array $data): int {
         ':subtitle'     => $data['subtitle']    ?? null,
         ':year'         => $data['year']        ?? null,
         ':category'     => $data['category']    ?? null,
+        ':page_section' => $data['page_section'] ?? 'work',
         ':skillset'     => $data['skillset']    ?? null,
         ':material'     => $data['material']    ?? null,
         ':exhibition'   => $data['exhibition']  ?? null,
@@ -93,6 +100,7 @@ function update_project(int $id, array $data): void {
             subtitle     = :subtitle,
             year         = :year,
             category     = :category,
+            page_section = :page_section,
             skillset     = :skillset,
             material     = :material,
             exhibition   = :exhibition,
@@ -114,6 +122,7 @@ function update_project(int $id, array $data): void {
         ':subtitle'     => $data['subtitle']    ?? null,
         ':year'         => $data['year']        ?? null,
         ':category'     => $data['category']    ?? null,
+        ':page_section' => $data['page_section'] ?? 'work',
         ':skillset'     => $data['skillset']    ?? null,
         ':material'     => $data['material']    ?? null,
         ':exhibition'   => $data['exhibition']  ?? null,

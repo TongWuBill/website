@@ -5,13 +5,13 @@ require_once __DIR__ . '/lang.php';
 
 function get_all_projects() {
     $db = get_db();
-    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 AND (category IS NULL OR category != 'ai') ORDER BY sort_order DESC");
+    $stmt = $db->query("SELECT * FROM projects WHERE is_published = 1 AND (page_section IS NULL OR page_section = 'work') ORDER BY sort_order DESC");
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 function get_projects_by_category(string $cat): array {
     $db = get_db();
-    $stmt = $db->prepare("SELECT * FROM projects WHERE is_published = 1 AND category = ? ORDER BY sort_order DESC");
+    $stmt = $db->prepare("SELECT * FROM projects WHERE is_published = 1 AND page_section = ? ORDER BY sort_order DESC");
     $stmt->execute([$cat]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

@@ -5,11 +5,13 @@ require_once __DIR__ . '/../../src/project-model.php';
 require_login();
 
 $errors = [];
+$_get_cat = $_GET['category'] ?? '';
 $info = [
     'title'        => '',
     'subtitle'     => '',
     'year'         => '',
-    'category'     => $_GET['category'] ?? '',
+    'category'     => '',
+    'page_section' => in_array($_get_cat, ['ai','lab']) ? $_get_cat : 'work',
     'skillset'     => '',
     'material'     => '',
     'exhibition'   => '',
@@ -156,9 +158,17 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
             <input type="text" name="year" form="create-form" value="<?= iv('year', $info) ?>" placeholder="e.g. 2024">
         </div>
         <div class="field">
-            <label>Category</label>
-            <input type="text" name="category" form="create-form" value="<?= iv('category', $info) ?>" placeholder="e.g. Installation">
+            <label>Page / Section</label>
+            <select name="page_section" form="create-form">
+                <option value="work"<?= ($info['page_section'] ?? 'work') === 'work' ? ' selected' : '' ?>>Work</option>
+                <option value="ai"<?= ($info['page_section'] ?? '') === 'ai' ? ' selected' : '' ?>>AI</option>
+                <option value="lab"<?= ($info['page_section'] ?? '') === 'lab' ? ' selected' : '' ?>>Lab</option>
+            </select>
         </div>
+    </div>
+    <div class="field">
+        <label>Category <span style="font-weight:400;color:#aaa;font-size:0.75rem">— free text tag</span></label>
+        <input type="text" name="category" form="create-form" value="<?= iv('category', $info) ?>" placeholder="e.g. Installation">
     </div>
 
     <div class="field">

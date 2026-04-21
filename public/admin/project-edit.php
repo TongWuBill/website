@@ -199,6 +199,7 @@ $info = [
     'subtitle'     => $project['subtitle']     ?? '',
     'year'         => $project['year']         ?? '',
     'category'     => $project['category']     ?? '',
+    'page_section' => $project['page_section'] ?? 'work',
     'skillset'     => $project['skillset']     ?? '',
     'material'     => $project['material']     ?? '',
     'exhibition'   => $project['exhibition']   ?? '',
@@ -675,10 +676,18 @@ $active_tab = ($_GET['tab'] ?? 'info') === 'content' ? 'content' : 'info';
             <input type="text" name="year" form="f-save" value="<?= iv('year', $info) ?>" placeholder="e.g. 2024">
         </div>
         <div class="field">
-            <label>Category</label>
-            <input type="text" name="category" form="f-save" value="<?= iv('category', $info) ?>"
-                   placeholder="e.g. Installation">
+            <label>Page / Section</label>
+            <select name="page_section" form="f-save">
+                <option value="work"<?= ($info['page_section'] ?? 'work') === 'work' ? ' selected' : '' ?>>Work</option>
+                <option value="ai"<?= ($info['page_section'] ?? '') === 'ai' ? ' selected' : '' ?>>AI</option>
+                <option value="lab"<?= ($info['page_section'] ?? '') === 'lab' ? ' selected' : '' ?>>Lab</option>
+            </select>
         </div>
+    </div>
+    <div class="field">
+        <label>Category <span style="font-weight:400;color:#aaa;font-size:0.75rem">— free text tag, unrelated to page placement</span></label>
+        <input type="text" name="category" form="f-save" value="<?= iv('category', $info) ?>"
+               placeholder="e.g. Installation">
     </div>
 
     <div class="field">
